@@ -44,9 +44,16 @@ class ControlloOnline(QThread):
 
     def run(self):
         try:
-            self.fatto.emit(rete.leggi_manifest())
+            m = rete.leggi_manifest()
         except Exception as e:
             self.errore.emit(str(e))
+            return
+        try:
+            if m and m.get('battute'):
+                aggiornamenti.scarica_battute(m)     # elenco frasi per Segnala (piccolo; se e' gia' uguale non riscarica)
+        except Exception:
+            pass
+        self.fatto.emit(m)
 
 
 # ---------------- piccoli mattoni grafici ----------------
@@ -134,6 +141,12 @@ class Finestra(QMainWindow):
             self.pagine.addWidget(costruttore())
         self.gruppo.idClicked.connect(self._vai)
         bl.addStretch(1)
+        disc = QPushButton('Entra nel Discord')
+        disc.setObjectName('discord')
+        disc.setCursor(Qt.PointingHandCursor)
+        disc.setToolTip('Apre il server Discord: novita\', aiuto e segnalazioni.')
+        disc.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(rete.DISCORD)))
+        bl.addWidget(disc)
         dona = QPushButton('\u2665  Sostieni il progetto')
         dona.setObjectName('dona')
         dona.setCursor(Qt.PointingHandCursor)
@@ -514,12 +527,6 @@ class Finestra(QMainWindow):
         def fatto(m):
             self.manifest, self.errore_online, self.controllato = m, None, True
             self.aggiorna_tutto()
-            if m:
-                try:
-                    if not os.path.isfile(os.path.join(aggiornamenti.cartella_cache(), 'battute.json')):
-                        aggiornamenti.scarica_battute(m)
-                except Exception:
-                    pass
             if mostra:
                 self._messaggio('Aggiornamenti', self.i_online.text())
 
@@ -895,23 +902,38 @@ class Finestra(QMainWindow):
 
     # ======================= SEGNALA ERRORE =======================
     def _segnala(self):
-        area, lay = pagina('Segnala errore', 'Hai visto o sentito qualcosa di sbagliato? Scrivi due o tre parole della frase: '
-                                            'il programma trova la battuta e prepara il messaggio per il Discord.')
+        area, lay = pagina('Segnala errore', 'Hai visto o sentito qualcosa di sbagliato? Trova la frase, scegli il problema '
+                                            'e il programma prepara il messaggio per il Discord.')
         f, l = scheda()
-        l.addWidget(etichetta('1. Cerca la frase', 'nome'))
-        r = QHBoxLayout()
+        l.addWidget(etichetta('1. Trova la frase', 'nome'))
+        l.addWidget(etichetta('Scegli la mappa (e se vuoi il personaggio): sotto compaiono tutte le sue frasi. '
+                              'Per fare prima scrivi anche due parole che ricordi, es. "mano ferma".', 'tenue'))
+        g = QGridLayout()
+        g.setHorizontalSpacing(10)
+        g.addWidget(etichetta('Mappa', a_capo=False), 0, 0)
+        self.s_mappa = QComboBox()
+        self.s_mappa.currentIndexChanged.connect(self._segnala_mappa)
+        g.addWidget(self.s_mappa, 0, 1)
+        g.addWidget(etichetta('Personaggio', a_capo=False), 0, 2)
+        self.s_chi = QComboBox()
+        self.s_chi.currentIndexChanged.connect(lambda _=0: self._segnala_cerca())
+        g.addWidget(self.s_chi, 0, 3)
+        g.addWidget(etichetta('Parole', a_capo=False), 1, 0)
         self.s_cerca = QLineEdit()
-        self.s_cerca.setPlaceholderText('es. "mano ferma"  oppure  "Salvador mobili"')
-        self.s_cerca.textChanged.connect(self._segnala_cerca)
-        r.addWidget(self.s_cerca, 1)
-        l.addLayout(r)
+        self.s_cerca.setPlaceholderText('facoltativo: due o tre parole della frase')
+        self.s_cerca.textChanged.connect(lambda _='': self._segnala_cerca())
+        g.addWidget(self.s_cerca, 1, 1, 1, 3)
+        g.setColumnStretch(1, 1)
+        g.setColumnStretch(3, 1)
+        l.addLayout(g)
         self.s_lista = QListWidget()
-        self.s_lista.setMinimumHeight(150)
+        self.s_lista.setMinimumHeight(220)
         self.s_lista.setWordWrap(True)
         l.addWidget(self.s_lista)
         self.s_info = etichetta('', 'tenue')
         l.addWidget(self.s_info)
         lay.addWidget(f)
+        self._s_mt = None
 
         f, l = scheda()
         l.addWidget(etichetta('2. Che problema c\'e\'?', 'nome'))
@@ -938,22 +960,51 @@ class Finestra(QMainWindow):
         lay.addStretch(1)
         return area
 
-    def _segnala_cerca(self, testo):
+    def _segnala_ricarica(self):
+        """Riempie i menu Mappa/Personaggio quando arriva (o cambia) l'elenco delle frasi."""
+        p = os.path.join(aggiornamenti.cartella_cache(), 'battute.json')
+        mt = os.path.getmtime(p) if os.path.isfile(p) else None
+        if mt == self._s_mt:
+            return
+        self._s_mt = mt
+        self.s_mappa.blockSignals(True)
+        self.s_mappa.clear()
+        self.s_mappa.addItem('Tutte le mappe', None)
+        for m, n in segnala.mappe():
+            self.s_mappa.addItem('%s  (%d frasi)' % (m, n), m)
+        self.s_mappa.blockSignals(False)
+        self._segnala_mappa()
+
+    def _segnala_mappa(self, _=0):
+        self.s_chi.blockSignals(True)
+        self.s_chi.clear()
+        self.s_chi.addItem('Tutti', None)
+        for c, n in segnala.personaggi(self.s_mappa.currentData()):
+            self.s_chi.addItem('%s  (%d)' % (c, n), c)
+        self.s_chi.blockSignals(False)
+        self._segnala_cerca()
+
+    def _segnala_cerca(self):
         self.s_lista.clear()
         if not segnala.battute():
-            self.s_info.setText('Elenco delle frasi non ancora scaricato (serve internet; arriva con il primo aggiornamento). '
-                                'Puoi segnalare lo stesso: verra\' inviata la frase che hai scritto.')
+            self.s_info.setText('Elenco delle frasi non ancora scaricato (serve internet: arriva da solo all\'avvio del '
+                                'programma). Puoi segnalare lo stesso: scrivi la frase in "Parole" e verra\' inviata quella.')
             return
-        if len(testo.strip()) < 3:
-            self.s_info.setText('')
+        testo = self.s_cerca.text()
+        mappa, chi = self.s_mappa.currentData(), self.s_chi.currentData()
+        if not mappa and not chi and len(testo.strip()) < 3:
+            self.s_info.setText('Scegli una mappa oppure scrivi qualche parola della frase.')
             return
-        ris = segnala.cerca(testo)
+        ris = segnala.cerca(testo, mappa, chi)
         for b in ris:
             it = QListWidgetItem('%s (%s):  %s' % (b['chi'], b['mappa'], b['it']))
             it.setData(Qt.UserRole, b)
             self.s_lista.addItem(it)
-        self.s_info.setText(('%d frasi trovate: clicca quella giusta.' % len(ris)) if ris else
-                            'Nessuna frase trovata: prova con altre parole, oppure invia lo stesso con la frase che hai scritto.')
+        if not ris:
+            self.s_info.setText('Nessuna frase trovata: prova con altre parole o un\'altra mappa, oppure invia lo stesso '
+                                'con quello che hai scritto.')
+        else:
+            self.s_info.setText('%s%d frasi: clicca quella giusta.' % ('Prime ' if len(ris) >= 400 else '', len(ris)))
         if len(ris) == 1:
             self.s_lista.setCurrentRow(0)
 
@@ -1072,6 +1123,7 @@ class Finestra(QMainWindow):
             self._aggiorna_strumenti()
             self._aggiorna_salvataggi()
             self._aggiorna_impostazioni()
+            self._segnala_ricarica()
             self._controlla_gioco()
         except Exception:
             traceback.print_exc()

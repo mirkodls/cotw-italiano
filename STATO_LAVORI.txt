@@ -9,6 +9,9 @@ ULTIMO AGGIORNAMENTO: 30/10/2026 - TAPPA 2 SCRITTA E PROVATA (con un finto GitHu
   scheda Segnala errore (Discord), tasto Ko-fi (barra a sinistra + Impostazioni). Codice caricato su GitHub.
   MANCA: l'utente crea il token GitHub e fa la PRIMA PUBBLICAZIONE (1.0.0) con strumenti\PUBBLICA_AGGIORNAMENTO.bat
   (prima 1 = prova, poi 2 = davvero). Poi prova 'Scarica e installa' dal programma.
+  + Segnala: menu Mappa e Personaggio (mostrano tutte le frasi), parole facoltative; elenco frasi scaricato da solo
+    all'avvio (controllo online). Tasto 'Entra nel Discord' nella barra a sinistra (sopra Ko-fi).
+  Prima pubblicazione 1.0.0 lanciata dall'utente il 30/10 (caricamento in corso).
   Prima: TAPPA 1 PROVATA DALL'UTENTE: 'sembra tutto ok'.
   (Da confermare: test reale di 'Imposta in automatico' Steam e collegamento desktop.)
   Prima: Home rifatta (Traduzione unica con un tasto, Missioni e salvataggi con
