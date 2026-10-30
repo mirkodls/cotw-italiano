@@ -6,3 +6,5 @@ errori.log
 github_token.txt
 chiave_elevenlabs*.txt
 *.part
+postino_admin.txt
+webhook.txt
