@@ -73,9 +73,14 @@ jobs:
                             'novita': novita,
                             'url': 'https://github.com/%s/releases/download/%s/%s' % (os.environ['GITHUB_REPOSITORY'], tag, info['zip'])}
           json.dump(o, open('online.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+          import re
+          r = open('README.md', encoding='utf-8').read()          # link di download sempre all'ultima versione
+          r = re.sub(r'releases/tag/programma-v[0-9.]+', 'releases/tag/' + tag, r)
+          r = re.sub(r'CotW_Italiano_[0-9.]+[0-9]\.zip', info['zip'], r)
+          open('README.md', 'w', encoding='utf-8').write(r)
           for c in (['git', 'config', 'user.name', 'github-actions[bot]'],
                     ['git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'],
-                    ['git', 'add', 'online.json'],
+                    ['git', 'add', 'online.json', 'README.md'],
                     ['git', 'commit', '-m', 'Programma %s pubblicato' % info['versione']],
                     ['git', 'push']):
               subprocess.run(c, check=True)
