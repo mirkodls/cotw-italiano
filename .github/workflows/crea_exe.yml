@@ -14,6 +14,15 @@ on:
         description: "Pubblicala per tutti (il programma si aggiornera' da solo)"
         type: boolean
         default: false
+      nexus:
+        description: "Caricala anche su Nexus Mods (serve il segreto NEXUSMODS_API_KEY)"
+        type: boolean
+        default: false
+
+# Nexus Mods: file del programma sulla pagina della mod (scheda Files -> Advanced -> API)
+env:
+  NEXUS_FILE_ID: "8269233"
+  NEXUS_MOD_ID: "13563506721966"
 
 permissions:
   contents: write
@@ -43,6 +52,15 @@ jobs:
         run: |
           python -m pip install --no-binary pyinstaller pyinstaller
           python strumenti/costruisci_exe.py --metodo pyinstaller
+
+      - name: Dati della versione
+        id: info
+        shell: python
+        run: |
+          import json, os
+          i = json.load(open('dist/programma.json'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('versione=%s\nzip=dist/%s\n' % (i['versione'], i['zip']))
 
       - name: Salva il risultato (scaricabile dalla pagina di questa esecuzione)
         uses: actions/upload-artifact@v4
@@ -84,3 +102,16 @@ jobs:
                     ['git', 'commit', '-m', 'Programma %s pubblicato' % info['versione']],
                     ['git', 'push']):
               subprocess.run(c, check=True)
+
+      - name: Carica su Nexus Mods
+        if: inputs.nexus
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.11
+        with:
+          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
+          file_id: ${{ env.NEXUS_FILE_ID }}
+          filename: ${{ steps.info.outputs.zip }}
+          version: ${{ steps.info.outputs.versione }}
+          display_name: CotW Italiano - programma ${{ steps.info.outputs.versione }}
+          description: "Programma per installare e aggiornare traduzione e doppiaggio italiani. Codice sorgente: https://github.com/mirkodls/cotw-italiano"
+          category: main
+          archive_existing_version: true
