@@ -56,6 +56,22 @@ class ControlloOnline(QThread):
         self.fatto.emit(m)
 
 
+class Invio(QThread):
+    fatto = Signal()
+    errore = Signal(str)
+
+    def __init__(self, testo):
+        super().__init__()
+        self.testo = testo
+
+    def run(self):
+        try:
+            segnala.invia(self.testo)
+            self.fatto.emit()
+        except Exception as e:
+            self.errore.emit(str(e))
+
+
 # ---------------- piccoli mattoni grafici ----------------
 def scheda():
     f = QFrame()
@@ -902,128 +918,111 @@ class Finestra(QMainWindow):
 
     # ======================= SEGNALA ERRORE =======================
     def _segnala(self):
-        area, lay = pagina('Segnala errore', 'Hai visto o sentito qualcosa di sbagliato? Trova la frase, scegli il problema '
-                                            'e il programma prepara il messaggio per il Discord.')
+        area, lay = pagina('Segnala errore', 'Hai visto una scritta sbagliata o sentito una voce sbagliata? Compila qui sotto '
+                                            'e premi Invia: la segnalazione arriva da sola sul Discord della mod.')
         f, l = scheda()
-        l.addWidget(etichetta('1. Trova la frase', 'nome'))
-        l.addWidget(etichetta('Scegli la mappa (e se vuoi il personaggio): sotto compaiono tutte le sue frasi. '
-                              'Per fare prima scrivi anche due parole che ricordi, es. "mano ferma".', 'tenue'))
-        g = QGridLayout()
-        g.setHorizontalSpacing(10)
-        g.addWidget(etichetta('Mappa', a_capo=False), 0, 0)
+        l.addWidget(etichetta('1. Mappa', 'nome'))
         self.s_mappa = QComboBox()
-        self.s_mappa.currentIndexChanged.connect(self._segnala_mappa)
-        g.addWidget(self.s_mappa, 0, 1)
-        g.addWidget(etichetta('Personaggio', a_capo=False), 0, 2)
-        self.s_chi = QComboBox()
-        self.s_chi.currentIndexChanged.connect(lambda _=0: self._segnala_cerca())
-        g.addWidget(self.s_chi, 0, 3)
-        g.addWidget(etichetta('Parole', a_capo=False), 1, 0)
-        self.s_cerca = QLineEdit()
-        self.s_cerca.setPlaceholderText('facoltativo: due o tre parole della frase')
-        self.s_cerca.textChanged.connect(lambda _='': self._segnala_cerca())
-        g.addWidget(self.s_cerca, 1, 1, 1, 3)
-        g.setColumnStretch(1, 1)
-        g.setColumnStretch(3, 1)
-        l.addLayout(g)
-        self.s_lista = QListWidget()
-        self.s_lista.setMinimumHeight(220)
-        self.s_lista.setWordWrap(True)
-        l.addWidget(self.s_lista)
-        self.s_info = etichetta('', 'tenue')
-        l.addWidget(self.s_info)
-        lay.addWidget(f)
-        self._s_mt = None
+        self.s_mappa.addItems(segnala.MAPPE)
+        self.s_mappa.currentIndexChanged.connect(lambda _=0: self._segnala_cerca())
+        l.addWidget(self.s_mappa)
 
-        f, l = scheda()
+        l.addSpacing(6)
         l.addWidget(etichetta('2. Che problema c\'e\'?', 'nome'))
         self.s_tipo = QComboBox()
         self.s_tipo.addItems(segnala.TIPI)
         l.addWidget(self.s_tipo)
-        self.s_commento = QPlainTextEdit()
-        self.s_commento.setPlaceholderText('Commento facoltativo (es. "dice pennelo invece di pennello", "si sente in inglese")')
-        self.s_commento.setFixedHeight(80)
-        l.addWidget(self.s_commento)
-        lay.addWidget(f)
 
-        f, l = scheda()
-        l.addWidget(etichetta('3. Invia', 'nome'))
-        l.addWidget(etichetta('Il tasto copia il messaggio gia\' pronto e apre il Discord della mod: vai nel canale delle '
-                              'segnalazioni, fai Incolla (Ctrl+V) e Invio. Nient\'altro.', 'tenue'))
+        l.addSpacing(6)
+        l.addWidget(etichetta('3. Scrivi la frase o la parola sbagliata', 'nome'))
+        self.s_cerca = QLineEdit()
+        self.s_cerca.setPlaceholderText('es.  Ecco qui mano ferma adesso')
+        self.s_cerca.textChanged.connect(lambda _='': self._segnala_cerca())
+        l.addWidget(self.s_cerca)
+        self.s_forse = etichetta('Forse e\' una di queste? Se si\', cliccala (non e\' obbligatorio).', 'tenue')
+        l.addWidget(self.s_forse)
+        self.s_lista = QListWidget()
+        self.s_lista.setFixedHeight(84)
+        l.addWidget(self.s_lista)
+        self.s_forse.hide()
+        self.s_lista.hide()
+
+        l.addSpacing(6)
+        l.addWidget(etichetta('4. Cosa non va? (facoltativo)', 'nome'))
+        self.s_commento = QLineEdit()
+        self.s_commento.setPlaceholderText('es.  manca il punto dopo "qui"  /  dice "pennelo"  /  si sente in inglese')
+        l.addWidget(self.s_commento)
+
+        l.addSpacing(10)
         r = QHBoxLayout()
-        b = bottone('Copia messaggio e apri Discord', 'primario')
-        b.clicked.connect(self._segnala_invia)
-        r.addWidget(b)
-        r.addStretch(1)
+        r.addWidget(etichetta('Il tuo nome su Discord (facoltativo)', a_capo=False))
+        self.s_autore = QLineEdit(percorsi.leggi_config().get('nome_discord', ''))
+        self.s_autore.setMaxLength(40)
+        r.addWidget(self.s_autore, 1)
+        self.s_invia = bottone('Invia segnalazione', 'primario')
+        self.s_invia.clicked.connect(self._segnala_invia)
+        r.addWidget(self.s_invia)
         l.addLayout(r)
         lay.addWidget(f)
         lay.addStretch(1)
         return area
 
-    def _segnala_ricarica(self):
-        """Riempie i menu Mappa/Personaggio quando arriva (o cambia) l'elenco delle frasi."""
-        p = os.path.join(aggiornamenti.cartella_cache(), 'battute.json')
-        mt = os.path.getmtime(p) if os.path.isfile(p) else None
-        if mt == self._s_mt:
-            return
-        self._s_mt = mt
-        self.s_mappa.blockSignals(True)
-        self.s_mappa.clear()
-        self.s_mappa.addItem('Tutte le mappe', None)
-        for m, n in segnala.mappe():
-            self.s_mappa.addItem('%s  (%d frasi)' % (m, n), m)
-        self.s_mappa.blockSignals(False)
-        self._segnala_mappa()
-
-    def _segnala_mappa(self, _=0):
-        self.s_chi.blockSignals(True)
-        self.s_chi.clear()
-        self.s_chi.addItem('Tutti', None)
-        for c, n in segnala.personaggi(self.s_mappa.currentData()):
-            self.s_chi.addItem('%s  (%d)' % (c, n), c)
-        self.s_chi.blockSignals(False)
-        self._segnala_cerca()
-
     def _segnala_cerca(self):
         self.s_lista.clear()
-        if not segnala.battute():
-            self.s_info.setText('Elenco delle frasi non ancora scaricato (serve internet: arriva da solo all\'avvio del '
-                                'programma). Puoi segnalare lo stesso: scrivi la frase in "Parole" e verra\' inviata quella.')
-            return
         testo = self.s_cerca.text()
-        mappa, chi = self.s_mappa.currentData(), self.s_chi.currentData()
-        if not mappa and not chi and len(testo.strip()) < 3:
-            self.s_info.setText('Scegli una mappa oppure scrivi qualche parola della frase.')
-            return
-        ris = segnala.cerca(testo, mappa, chi)
+        ris = segnala.cerca(testo, self.s_mappa.currentText(), massimo=3) if len(testo.split()) >= 2 else []
         for b in ris:
-            it = QListWidgetItem('%s (%s):  %s' % (b['chi'], b['mappa'], b['it']))
+            it = QListWidgetItem('%s:  %s' % (b['chi'], b['it']))
             it.setData(Qt.UserRole, b)
             self.s_lista.addItem(it)
-        if not ris:
-            self.s_info.setText('Nessuna frase trovata: prova con altre parole o un\'altra mappa, oppure invia lo stesso '
-                                'con quello che hai scritto.')
-        else:
-            self.s_info.setText('%s%d frasi: clicca quella giusta.' % ('Prime ' if len(ris) >= 400 else '', len(ris)))
-        if len(ris) == 1:
-            self.s_lista.setCurrentRow(0)
+        self.s_forse.setVisible(bool(ris))
+        self.s_lista.setVisible(bool(ris))
+
+    def _segnala_testo(self):
+        it = self.s_lista.currentItem() if self.s_lista.isVisible() else None
+        b = it.data(Qt.UserRole) if it else None
+        frase, commento = self.s_cerca.text().strip(), self.s_commento.text().strip()
+        if not frase and not commento:
+            self._messaggio('Manca qualcosa', 'Scrivi la frase sbagliata, oppure cosa non va.', 'avviso')
+            return None
+        autore = self.s_autore.text().strip()
+        cfg = percorsi.leggi_config()
+        if cfg.get('nome_discord', '') != autore:
+            cfg['nome_discord'] = autore
+            percorsi.salva_config(cfg)
+        st = installa.leggi_stato()['componenti']
+        mia = st.get('audio', {}).get('versione') or st.get('testo', {}).get('versione')
+        return segnala.messaggio(self.s_tipo.currentText(), self.s_mappa.currentText(), frase, commento,
+                                 b, autore, mia, VERSIONE)
 
     def _segnala_invia(self):
-        it = self.s_lista.currentItem()
-        b = it.data(Qt.UserRole) if it else None
-        frase = self.s_cerca.text().strip()
-        if not b and not frase and not self.s_commento.toPlainText().strip():
-            self._messaggio('Manca qualcosa', 'Scrivi qualche parola della frase o un commento.', 'avviso')
+        msg = self._segnala_testo()
+        if not msg:
             return
-        mia = installa.leggi_stato()['componenti'].get('audio', {}).get('versione') or \
-            installa.leggi_stato()['componenti'].get('testo', {}).get('versione')
-        msg = segnala.messaggio(self.s_tipo.currentText(), b, self.s_commento.toPlainText(), mia, VERSIONE,
-                                frase_libera='' if b else frase)
-        QGuiApplication.clipboard().setText(msg)
-        QDesktopServices.openUrl(QUrl(rete.DISCORD))
-        self._messaggio('Messaggio copiato', 'Si e\' aperto il Discord della mod.\n\nVai nel canale delle segnalazioni, '
-                                             'premi Ctrl+V e poi Invio.\n\nGrazie! Correggeremo nel prossimo aggiornamento.')
-        self.s_commento.clear()
+        self.s_invia.setEnabled(False)
+        self.s_invia.setText('Invio in corso...')
+        th = Invio(msg)
+        self._invio = th
+
+        def fatto():
+            self.s_invia.setEnabled(True)
+            self.s_invia.setText('Invia segnalazione')
+            self.s_commento.clear()
+            self.s_cerca.clear()
+            self.statusBar().showMessage('Segnalazione inviata.')
+            self._messaggio('Segnalazione inviata', 'Grazie! La segnalazione e\' arrivata sul Discord della mod.\n'
+                                                   'Verra\' corretta in un prossimo aggiornamento.')
+
+        def errore(e):
+            self.s_invia.setEnabled(True)
+            self.s_invia.setText('Invia segnalazione')
+            QGuiApplication.clipboard().setText(msg)
+            if QMessageBox.question(self, 'Non inviata', e + '\n\nHo copiato la segnalazione: vuoi aprire il Discord '
+                                    'e incollarla tu (Ctrl+V) nel canale delle segnalazioni?') == QMessageBox.Yes:
+                QDesktopServices.openUrl(QUrl(rete.DISCORD))
+        th.fatto.connect(fatto)
+        th.errore.connect(errore)
+        th.start()
 
     # ======================= IMPOSTAZIONI =======================
     def _impostazioni(self):
@@ -1123,7 +1122,6 @@ class Finestra(QMainWindow):
             self._aggiorna_strumenti()
             self._aggiorna_salvataggi()
             self._aggiorna_impostazioni()
-            self._segnala_ricarica()
             self._controlla_gioco()
         except Exception:
             traceback.print_exc()

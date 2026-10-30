@@ -9,7 +9,7 @@ REPO = 'mirkodls/cotw-italiano'
 PAGINA = 'https://github.com/%s' % REPO
 DISCORD = 'https://discord.gg/xPgHkstTDn'
 KOFI = 'https://ko-fi.com/mirkodls'
-_UA = {'User-Agent': 'CotW-Italiano'}
+_UA = {'User-Agent': 'CotW-Italiano (https://github.com/mirkodls/cotw-italiano)'}
 
 
 def url_manifest():
@@ -73,3 +73,32 @@ def scarica(url, destinazione, sha_atteso=None, avanzamento=None, fermati=None):
         raise RuntimeError('Il file scaricato e\' rovinato (controllo di integrita\' fallito). Riprova.')
     os.replace(part, destinazione)
     return destinazione
+
+
+def url_online():
+    """Piccolo file di impostazioni nel repository (si cambia senza fare una nuova versione del programma)."""
+    return os.environ.get('COTW_URL_ONLINE') or 'https://raw.githubusercontent.com/%s/main/online.json' % REPO
+
+
+def leggi_online(timeout=15):
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url_online(), headers=_UA), timeout=timeout) as r:
+            return json.loads(r.read().decode('utf-8'))
+    except Exception:
+        return {}
+
+
+def invia_webhook(url, testo, nome='Segnalazioni CotW Italiano', timeout=20):
+    """Manda un messaggio nel canale Discord del webhook. Nessuna menzione (@everyone ecc.) viene attivata."""
+    corpo = json.dumps({'content': testo[:1990], 'username': nome, 'allowed_mentions': {'parse': []}}).encode('utf-8')
+    h = dict(_UA)
+    h['Content-Type'] = 'application/json'
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, data=corpo, headers=h, method='POST'), timeout=timeout):
+            return True
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            raise RuntimeError('Troppe segnalazioni in poco tempo: riprova tra qualche minuto.')
+        raise RuntimeError('Discord ha rifiutato la segnalazione (errore %d).' % e.code)
+    except urllib.error.URLError:
+        raise RuntimeError('Non riesco a collegarmi a Discord: controlla la connessione a internet.')
