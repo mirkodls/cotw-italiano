@@ -1,0 +1,33 @@
+﻿POSTINO DELLE SEGNALAZIONI (Cloudflare Worker, gratis) - CotW Italiano
+=====================================================================
+Il programma manda la segnalazione al "postino", il postino la gira nel canale Discord.
+L'indirizzo del webhook Discord lo conosce SOLO il postino (segreto WEBHOOK): non sta nel programma
+ne' su GitHub. Il postino blocca chi manda piu' di 5 segnalazioni all'ora e i messaggi strani.
+
+A) DISCORD - webhook nuovo
+ 1. Canale delle segnalazioni -> ingranaggio "Modifica canale" -> Integrazioni -> Webhook.
+ 2. Se c'e' il vecchio "Segnalazioni CotW" (quello scritto in chat): aprilo -> "Elimina webhook".
+ 3. "Nuovo webhook" -> nome "Segnalazioni CotW" -> "Copia URL del webhook".
+    NON incollarlo in chat a nessuno: va solo su Cloudflare (punto C).
+
+B) CLOUDFLARE - crea il postino
+ 1. Vai su dash.cloudflare.com e crea un account gratuito (email + password, niente carta).
+ 2. Nel menu a sinistra: "Workers & Pages" (o "Compute (Workers)") -> "Create" (Crea) -> Worker
+    -> "Start with Hello World!".
+ 3. Nome: cotw-segnalazioni  -> "Deploy".
+ 4. Premi "Edit code" (Modifica codice): cancella TUTTO il codice che c'e' a sinistra,
+    apri worker.js (questa cartella) col Blocco note, Ctrl+A, Ctrl+C, incolla nell'editor -> "Deploy".
+
+C) CLOUDFLARE - il segreto
+ 1. Torna alla pagina del Worker -> "Settings" (Impostazioni) -> "Variables and Secrets" -> "Add".
+ 2. Type: Secret   Variable name: WEBHOOK   Value: incolla l'URL del webhook (punto A3) -> "Deploy"/"Save".
+
+D) PROVA E COLLEGAMENTO
+ 1. Nella pagina del Worker c'e' l'indirizzo, tipo  https://cotw-segnalazioni.<tuonome>.workers.dev
+    Aprilo nel browser: deve scrivere "Postino CotW Italiano attivo."
+ 2. Manda quell'indirizzo a Claude (lui NON e' segreto): Claude lo mette in online.json su GitHub
+    e da quel momento il tasto "Invia segnalazione" funziona per tutti.
+
+SE QUALCUNO FA SPAM: su Discord elimini il webhook e ne fai uno nuovo, poi su Cloudflare cambi solo il
+segreto WEBHOOK (punto C). Il programma non va rifatto.
+Per cambiare i limiti: in worker.js le righe LIMITE_ORA_PER_PC e LIMITE_ORA_TOTALE.
