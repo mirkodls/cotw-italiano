@@ -37,6 +37,8 @@ QLabel {{ background: transparent; }}
 #avviso {{ background: #2e2418; border: 1px solid #5a4325; border-radius: 10px; padding: 10px 14px; color: #f0c48f; }}
 QPushButton {{ background: #2a3034; border: 1px solid #3a4146; border-radius: 8px; padding: 8px 16px; }}
 QPushButton:hover {{ background: #323a3f; }}
+#barra QPushButton#discord {{ color: #dfe3ff; background: #2b2f4a; border: 1px solid #4a518a; border-radius: 8px; text-align: center; font-weight: 600; margin: 4px 14px 0 14px; padding: 9px 10px; }}
+#barra QPushButton#discord:hover {{ background: #363c63; }}
 #barra QPushButton#dona {{ color: #f3c58a; background: #2b2419; border: 1px solid #5a4325; border-radius: 8px; text-align: center; font-weight: 600; margin: 4px 14px 8px 14px; padding: 9px 10px; }}
 #barra QPushButton#dona:hover {{ background: #3a2f1e; color: #ffd9a6; }}
 QPushButton:disabled {{ color: #6b7174; background: #22272a; border-color: #2c3135; }}
