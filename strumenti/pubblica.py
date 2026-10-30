@@ -3,8 +3,10 @@ Prende i file da  Desktop\\mod italiano\\MOD  (mod ita testo, mod audio ita), cr
 Serve un token GitHub in  Desktop\\mod italiano\\github_token.txt  (fine-grained, solo il repository
 cotw-italiano, permesso Contents: Read and write). Il token NON va mai condiviso ne' messo nel repository.
 
-Uso:  python pubblica.py [--versione 1.0.1] [--novita "testo; altro testo"] [--prova]
-  --prova  prepara tutto in strumenti\\_pubblica ma NON carica niente su GitHub."""
+Uso:  python pubblica.py [--versione 1.0.1] [--novita "testo; altro testo"] [--apri-doppiaggio] [--prova]
+  --prova            prepara tutto in strumenti\\_pubblica ma NON carica niente su GitHub.
+  --apri-doppiaggio  le battute senza voce (nuove o in da_rifare.txt) si possono doppiare dalla community
+                     (scheda Contribuisci). Da usare SOLO dopo aver ricontrollato i testi."""
 import os
 import sys
 import json
@@ -160,6 +162,7 @@ def main():
     ap.add_argument('--versione')
     ap.add_argument('--novita', default='')
     ap.add_argument('--prova', action='store_true')
+    ap.add_argument('--apri-doppiaggio', action='store_true')
     a = ap.parse_args()
 
     say('1/5 Leggo la versione pubblicata adesso...')
@@ -228,6 +231,25 @@ def main():
     json.dump(elenco_battute(ids), open(bf, 'w', encoding='utf-8'), ensure_ascii=False)
     man['battute'] = {'nome': os.path.basename(bf), 'tag': tag, 'sha256': rete.sha256_file(bf)}
     da_caricare.append(bf)
+    if a.apri_doppiaggio:
+        say('    Battute da far doppiare alla community...')
+        import da_doppiare
+        dd, senza_voce = da_doppiare.crea(MODIT, ids, NOMI, MAPPA)
+        for k in senza_voce:
+            say('    ATTENZIONE: il personaggio "%s" non ha una voce in voci_elevenlabs.json: uso Sarah/Brian.' % k)
+        if dd:
+            df = os.path.join(out, 'da_doppiare_%s.json' % ver)
+            json.dump(da_doppiare.documento(ver, dd), open(df, 'w', encoding='utf-8'), ensure_ascii=False)
+            man['da_doppiare'] = {'nome': os.path.basename(df), 'tag': tag, 'sha256': rete.sha256_file(df), 'numero': len(dd),
+                                  'caratteri': sum(len(b['testo']) for b in dd)}
+            da_caricare.append(df)
+            say('    %d battute aperte alla community (circa %d caratteri ElevenLabs).' % (len(dd), man['da_doppiare']['caratteri']))
+        else:
+            say('    Nessuna battuta senza voce: niente da far doppiare.')
+    cf = os.path.join(MODIT, 'contributi', 'contributori.json')
+    if os.path.isfile(cf):
+        cc = json.load(open(cf, encoding='utf-8'))
+        man['contributori'] = [{'nome': n, 'battute': v} for n, v in sorted(cc.items(), key=lambda x: -x[1])]
     mf = os.path.join(out, 'versione.json')
     json.dump(man, open(mf, 'w', encoding='utf-8'), ensure_ascii=False)
     da_caricare.append(mf)                     # per ultimo: finche' non c'e', la versione non e' visibile

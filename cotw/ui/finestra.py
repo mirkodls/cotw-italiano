@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, Q
                                QComboBox, QMessageBox, QButtonGroup, QScrollArea, QSizePolicy,
                                QListWidget, QListWidgetItem, QInputDialog, QPlainTextEdit)
 
-from ..core import percorsi, installa, quad, missioni, avvio, rete, aggiornamenti, segnala
+from ..core import percorsi, installa, quad, missioni, avvio, rete, aggiornamenti, segnala, contribuisci
 from .. import VERSIONE
 from . import stile
 
@@ -53,7 +53,49 @@ class ControlloOnline(QThread):
                 aggiornamenti.scarica_battute(m)     # elenco frasi per Segnala (piccolo; se e' gia' uguale non riscarica)
         except Exception:
             pass
+        self.doc, self.stato = None, None
+        self.online = rete.leggi_online()
+        try:
+            self.doc = contribuisci.elenco(m)        # battute da doppiare (solo se l'autore le ha aperte)
+            if self.doc:
+                self.stato = contribuisci.stato()
+        except Exception:
+            pass
         self.fatto.emit(m)
+
+
+class Doppiaggio(QThread):
+    avanzamento = Signal(int, int, str)
+    finito = Signal(int, str)
+    errore = Signal(str)
+
+    def __init__(self, chiave, doc, chi):
+        super().__init__()
+        self.chiave, self.doc, self.chi, self.stop = chiave, doc, chi, False
+
+    def run(self):
+        try:
+            n, motivo = contribuisci.doppia(self.chiave, self.doc, self.chi,
+                                            lambda a, b, t: self.avanzamento.emit(a, b, t), lambda: self.stop)
+            self.finito.emit(n, motivo)
+        except Exception as e:
+            traceback.print_exc()
+            self.errore.emit(str(e))
+
+
+class Crediti(QThread):
+    fatto = Signal(object)
+    errore = Signal(str)
+
+    def __init__(self, chiave):
+        super().__init__()
+        self.chiave = chiave
+
+    def run(self):
+        try:
+            self.fatto.emit(contribuisci.crediti(self.chiave))
+        except Exception as e:
+            self.errore.emit(str(e))
 
 
 class Invio(QThread):
@@ -128,6 +170,7 @@ class Finestra(QMainWindow):
         self.setMinimumSize(880, 600)
         self.lavoro = None
         self.manifest, self.errore_online, self.controllato = None, None, False
+        self.c_doc, self.c_stato, self.c_lavoro, self.c_online = None, None, None, {}
         self.gioco = percorsi.trova_gioco()
         cfg = percorsi.leggi_config()
         self.sorgente = cfg.get('pacchetto') or self._pacchetto_predefinito()
@@ -148,7 +191,8 @@ class Finestra(QMainWindow):
         self.gruppo = QButtonGroup(self)
         for i, (nome, costruttore) in enumerate([('Home', self._home), ('Installa', self._installa), ('Avvio gioco', self._avvio),
                                                  ('Salvataggi', self._salvataggi), ('Strumenti', self._strumenti),
-                                                 ('Segnala errore', self._segnala), ('Impostazioni', self._impostazioni)]):
+                                                 ('Segnala errore', self._segnala), ('Contribuisci', self._contribuisci),
+                                                 ('Impostazioni', self._impostazioni)]):
             b = QPushButton(nome)
             b.setCheckable(True)
             b.setCursor(Qt.PointingHandCursor)
@@ -326,7 +370,7 @@ class Finestra(QMainWindow):
         b.clicked.connect(lambda: self._vai_a(4))
         self.h['quad'][2].addWidget(b)
         b = bottone('Impostazioni')
-        b.clicked.connect(lambda: self._vai_a(6))
+        b.clicked.connect(lambda: self._vai_a(7))
         self.h['gioco'][2].addWidget(b)
         lay.addStretch(1)
         return area
@@ -542,7 +586,9 @@ class Finestra(QMainWindow):
 
         def fatto(m):
             self.manifest, self.errore_online, self.controllato = m, None, True
+            self.c_doc, self.c_stato, self.c_online = th.doc, th.stato, th.online
             self.aggiorna_tutto()
+            self._popup_contribuisci()
             if mostra:
                 self._messaggio('Aggiornamenti', self.i_online.text())
 
@@ -1025,6 +1071,232 @@ class Finestra(QMainWindow):
         th.errore.connect(errore)
         th.start()
 
+    # ======================= CONTRIBUISCI =======================
+    def _contribuisci(self):
+        area, lay = pagina('Contribuisci', 'Quando il gioco aggiunge battute nuove, puoi aiutare a doppiarle in italiano: '
+                                         'gratis, con un tuo account ElevenLabs. Le voci saranno identiche a quelle della mod.')
+        self.c_banner = QFrame()
+        self.c_banner.setObjectName('banner')
+        bl = QVBoxLayout(self.c_banner)
+        bl.setContentsMargins(16, 12, 16, 12)
+        self.c_stato_l = etichetta('')
+        bl.addWidget(self.c_stato_l)
+        self.c_barra_tot = QProgressBar()
+        self.c_barra_tot.setFormat('%v di %m battute doppiate')
+        bl.addWidget(self.c_barra_tot)
+        lay.addWidget(self.c_banner)
+
+        self.c_passi = QWidget()
+        pl = QVBoxLayout(self.c_passi)
+        pl.setContentsMargins(0, 0, 0, 0)
+        pl.setSpacing(14)
+        f, l = scheda()
+        l.addWidget(etichetta('1. Crea un account ElevenLabs (gratis)', 'nome'))
+        l.addWidget(etichetta('Basta il piano gratuito: ogni mese da\' 10.000 crediti, circa 80-100 battute. '
+                              'Un account a persona, per favore.', 'tenue'))
+        r = QHBoxLayout()
+        b = bottone('Crea l\'account')
+        b.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(contribuisci.LINK_ACCOUNT)))
+        r.addWidget(b)
+        r.addStretch(1)
+        l.addLayout(r)
+        pl.addWidget(f)
+
+        f, l = scheda()
+        l.addWidget(etichetta('2. Crea la chiave API', 'nome'))
+        l.addWidget(etichetta('Nella pagina delle chiavi premi "Create API key". Se ti chiede i permessi, lascia attivi '
+                              '"Text to Speech" e "User" (lettura, per vedere i crediti). Poi copia la chiave.', 'tenue'))
+        r = QHBoxLayout()
+        b = bottone('Apri la pagina delle chiavi')
+        b.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(contribuisci.LINK_CHIAVE)))
+        r.addWidget(b)
+        self.c_video = bottone('Guarda il video')
+        self.c_video.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(self.c_online.get('video_chiave', ''))))
+        self.c_video.hide()
+        r.addWidget(self.c_video)
+        r.addStretch(1)
+        l.addLayout(r)
+        pl.addWidget(f)
+
+        f, l = scheda()
+        l.addWidget(etichetta('3. Incolla la chiave', 'nome'))
+        l.addWidget(etichetta('La chiave resta sul tuo PC e viene usata solo per parlare con ElevenLabs: '
+                              'a noi arrivano soltanto gli audio.', 'tenue'))
+        r = QHBoxLayout()
+        self.c_chiave = QLineEdit(contribuisci.leggi_chiave())
+        self.c_chiave.setEchoMode(QLineEdit.Password)
+        self.c_chiave.setPlaceholderText('incolla qui la chiave (Ctrl+V)')
+        r.addWidget(self.c_chiave, 1)
+        b = bottone('Controlla')
+        b.clicked.connect(self._c_controlla)
+        r.addWidget(b)
+        l.addLayout(r)
+        self.c_ricorda = QCheckBox('Ricorda la chiave su questo PC (salvata cifrata da Windows)')
+        self.c_ricorda.setStyleSheet('font-weight: normal; font-size: 10pt;')
+        self.c_ricorda.setChecked(bool(self.c_chiave.text()))
+        l.addWidget(self.c_ricorda)
+        self.c_crediti = etichetta('', 'tenue')
+        l.addWidget(self.c_crediti)
+        pl.addWidget(f)
+
+        f, l = scheda()
+        l.addWidget(etichetta('4. Doppia', 'nome'))
+        r = QHBoxLayout()
+        r.addWidget(etichetta('Il tuo nome nei ringraziamenti', a_capo=False))
+        cfg = percorsi.leggi_config()
+        self.c_nome = QLineEdit(cfg.get('nome_ringraziamenti') or cfg.get('nome_discord', ''))
+        self.c_nome.setMaxLength(32)
+        self.c_nome.setPlaceholderText('es. il tuo nick')
+        r.addWidget(self.c_nome, 1)
+        l.addLayout(r)
+        l.addWidget(etichetta('Il programma prenota un gruppo di battute (cosi\' nessun altro fa le stesse), le genera '
+                              'con i tuoi crediti e le manda una alla volta. Puoi fermarti quando vuoi.', 'tenue'))
+        r = QHBoxLayout()
+        self.c_via = bottone('Doppia le battute', 'primario')
+        self.c_via.clicked.connect(self._c_doppia)
+        r.addWidget(self.c_via)
+        self.c_ferma = bottone('Ferma')
+        self.c_ferma.clicked.connect(self._c_ferma)
+        self.c_ferma.hide()
+        r.addWidget(self.c_ferma)
+        r.addStretch(1)
+        l.addLayout(r)
+        self.c_barra = QProgressBar()
+        self.c_barra.hide()
+        l.addWidget(self.c_barra)
+        self.c_info = etichetta('', 'tenue')
+        l.addWidget(self.c_info)
+        pl.addWidget(f)
+        lay.addWidget(self.c_passi)
+
+        f, l = scheda()
+        l.addWidget(etichetta('Grazie a chi ha doppiato', 'nome'))
+        self.c_grazie = etichetta('', 'tenue')
+        l.addWidget(self.c_grazie)
+        lay.addWidget(f)
+        lay.addStretch(1)
+        return area
+
+    def _aggiorna_contribuisci(self):
+        doc, st = self.c_doc, self.c_stato
+        lavora = bool(self.c_lavoro and self.c_lavoro.isRunning())
+        if not self.controllato:
+            self.c_stato_l.setText('Controllo se ci sono battute da doppiare...')
+            self.c_barra_tot.hide()
+        elif not doc:
+            self.c_stato_l.setText('Al momento tutte le battute sono doppiate. Quando un aggiornamento del gioco '
+                                   'aggiungera\' battute nuove, qui potrai aiutare a farle in italiano.')
+            self.c_barra_tot.hide()
+        else:
+            tot = len(doc['battute'])
+            fatte = (st or {}).get('fatte', 0)
+            libere = (st or {}).get('libere', tot)
+            self.c_stato_l.setText('Ci sono %d battute nuove da doppiare (versione %s): %s. '
+                                   'Contribuisci gratuitamente per tutta la community!'
+                                   % (tot, doc.get('versione', '?'), 'ne manca 1' if libere == 1 else
+                                      ('ne mancano %d' % libere) if libere else 'sono tutte prenotate o fatte'))
+            self.c_barra_tot.setMaximum(max(tot, 1))
+            self.c_barra_tot.setValue(fatte)
+            self.c_barra_tot.show()
+        self.c_passi.setEnabled(bool(doc) or lavora)
+        self.c_video.setVisible(bool(self.c_online.get('video_chiave')))
+        cc = (self.manifest or {}).get('contributori') or []
+        self.c_grazie.setText(', '.join('%s (%d)' % (c['nome'], c['battute']) for c in cc) if cc else
+                              'Ancora nessuno: potresti essere il primo!')
+
+    def _popup_contribuisci(self):
+        d = (self.manifest or {}).get('da_doppiare')
+        if not d or not self.c_doc:
+            return
+        cfg = percorsi.leggi_config()
+        if cfg.get('popup_contribuisci') == d.get('tag'):
+            return
+        cfg['popup_contribuisci'] = d.get('tag')
+        percorsi.salva_config(cfg)
+        r = QMessageBox.question(self, 'Battute nuove da doppiare',
+                                 'Il gioco ha %d battute nuove ancora senza voce italiana.\n\n'
+                                 'Contribuisci gratuitamente per tutta la community! Ti serve solo un account '
+                                 'ElevenLabs gratuito: il programma fa tutto il resto.\n\nVuoi vedere come?' % d.get('numero', 0))
+        if r == QMessageBox.Yes:
+            self._vai_a(6)
+
+    def _c_controlla(self):
+        k = self.c_chiave.text().strip()
+        if not k:
+            self._messaggio('Manca la chiave', 'Incolla prima la chiave di ElevenLabs.', 'avviso')
+            return
+        self.c_crediti.setText('Controllo...')
+        th = Crediti(k)
+        self._c_cr = th
+
+        def fatto(c):
+            if self.c_ricorda.isChecked():
+                contribuisci.salva_chiave(k)
+            else:
+                contribuisci.dimentica_chiave()
+            if c is None:
+                self.c_crediti.setText('Chiave valida. (Non posso leggere i crediti: va bene lo stesso.)')
+            else:
+                self.c_crediti.setText('Chiave valida: hai %s crediti questo mese, circa %d battute.'
+                                       % ('{:,}'.format(c).replace(',', '.'), max(0, c - contribuisci.MARGINE) // 110))
+        th.fatto.connect(fatto)
+        th.errore.connect(lambda e: self.c_crediti.setText(e))
+        th.start()
+
+    def _c_doppia(self):
+        k = self.c_chiave.text().strip()
+        if not k:
+            self._messaggio('Manca la chiave', 'Incolla prima la chiave di ElevenLabs (passo 3).', 'avviso')
+            return
+        if not self.c_doc:
+            return
+        nome = self.c_nome.text().strip()
+        cfg = percorsi.leggi_config()
+        cfg['nome_ringraziamenti'] = nome
+        percorsi.salva_config(cfg)
+        if self.c_ricorda.isChecked():
+            contribuisci.salva_chiave(k)
+        th = Doppiaggio(k, self.c_doc, nome or 'Anonimo')
+        self.c_lavoro = th
+        self.c_via.setEnabled(False)
+        self.c_ferma.show()
+        self.c_barra.setValue(0)
+        self.c_barra.show()
+        self.c_info.setText('Prenoto le battute...')
+
+        def av(a, b, t):
+            self.c_barra.setMaximum(max(b, 1))
+            self.c_barra.setValue(a)
+            self.c_info.setText('%d di %d  -  %s' % (min(a + 1, b), b, t) if a < b else 'Fatto.')
+
+        def fine(n, motivo):
+            self.c_via.setEnabled(True)
+            self.c_ferma.hide()
+            self.c_info.setText(('Hai doppiato %d battute. ' % n if n else '') + (motivo or ''))
+            self._controlla_online()
+            if n:
+                self._messaggio('Grazie!', 'Grazie mille! Hai doppiato %d battute per tutta la community.\n\n'
+                                           'Le ascoltiamo e le mettiamo nel prossimo aggiornamento, con il tuo nome '
+                                           'nei ringraziamenti.%s' % (n, ('\n\n' + motivo) if motivo else ''))
+            elif motivo:
+                self._messaggio('Contribuisci', motivo)
+
+        def err(e):
+            self.c_via.setEnabled(True)
+            self.c_ferma.hide()
+            self.c_info.setText(e)
+            self._messaggio('Qualcosa e\' andato storto', e + '\n\nLe battute gia\' fatte sono arrivate: non si perde niente.',
+                            'avviso')
+        th.avanzamento.connect(av)
+        th.finito.connect(fine)
+        th.errore.connect(err)
+        th.start()
+
+    def _c_ferma(self):
+        if self.c_lavoro:
+            self.c_lavoro.stop = True
+            self.c_info.setText('Mi fermo dopo la battuta in corso...')
+
     # ======================= IMPOSTAZIONI =======================
     def _impostazioni(self):
         area, lay = pagina('Impostazioni', 'Dove si trovano il gioco e i salvataggi.')
@@ -1123,6 +1395,7 @@ class Finestra(QMainWindow):
             self._aggiorna_strumenti()
             self._aggiorna_salvataggi()
             self._aggiorna_impostazioni()
+            self._aggiorna_contribuisci()
             self._controlla_gioco()
         except Exception:
             traceback.print_exc()

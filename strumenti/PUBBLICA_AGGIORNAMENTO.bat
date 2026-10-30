@@ -12,7 +12,7 @@ echo.
 echo  Prende i file da  Desktop\mod italiano\MOD
 echo  (prima lancia 3_CREA_PACCHETTI_NEXUS.bat se hai cambiato qualcosa)
 echo.
-echo   1 = PROVA (prepara tutto ma NON carica niente)
+echo   1 = PROVA (prepara tutto ma NON carica niente; mostra anche le battute senza voce)
 echo   2 = PUBBLICA DAVVERO (serve github_token.txt)
 echo   0 = esci
 echo.
@@ -23,7 +23,7 @@ if "%SCELTA%"=="2" goto vero
 goto fine
 
 :prova
-"%PY%" pubblica.py --prova
+"%PY%" pubblica.py --prova --apri-doppiaggio
 goto fine
 
 :vero
@@ -32,11 +32,18 @@ echo Scrivi le novita' separate da ;  (es: Corrette 3 battute di Salvador; Nuova
 set "NOV="
 set /p "NOV=Novita': "
 echo.
+echo Ci sono battute senza voce (nuove o in da_rifare.txt) che vuoi far doppiare alla COMMUNITY?
+echo Rispondi SI solo se i loro testi sono gia' stati ricontrollati (almeno due volte).
+set "APRI="
+set "COM="
+set /p "COM=Apro il doppiaggio alla community? SI/NO: "
+if /i "%COM%"=="SI" set "APRI=--apri-doppiaggio"
+echo.
 echo Sto per caricare su GitHub. Tutti gli utenti vedranno l'aggiornamento.
 set "OK="
 set /p "OK=Scrivi SI per confermare: "
 if /i not "%OK%"=="SI" goto fine
-"%PY%" pubblica.py --novita "%NOV%"
+"%PY%" pubblica.py --novita "%NOV%" %APRI%
 goto fine
 
 :nopy

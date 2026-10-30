@@ -28,6 +28,21 @@ D) PROVA E COLLEGAMENTO
  2. Manda quell'indirizzo a Claude (lui NON e' segreto): Claude lo mette in online.json su GitHub
     e da quel momento il tasto "Invia segnalazione" funziona per tutti.
 
+E) CONTRIBUTI (scheda Contribuisci) - da fare una volta, quando aggiorni il postino
+ 1. Aggiorna il codice: pagina del Worker -> "Edit code" -> Ctrl+A, Canc -> incolla il NUOVO worker.js -> "Deploy".
+ 2. Il deposito: nel menu a sinistra "Storage & Databases" -> "Workers KV" -> "Create" (Create namespace)
+    -> nome: cotw-deposito -> "Create".
+ 3. Collegalo al postino: pagina del Worker -> "Settings" -> "Bindings" -> "Add binding" -> "KV namespace"
+    -> Variable name: DEPOSITO   KV namespace: cotw-deposito -> "Add binding" / "Deploy".
+ 4. La tua password: inventane una lunga (es. 4 parole a caso + numeri). Settings -> "Variables and Secrets"
+    -> "Add variable" -> Key: ADMIN, Value: la password, spunta "Secret" -> "Add variable and deploy".
+ 5. Scrivi LA STESSA password nel Blocco note e salvala come  Desktop\mod italiano\postino_admin.txt
+    (NON incollarla in chat). Serve a RICEVI_CONTRIBUTI.bat per scaricare gli audio.
+ 6. Prova: apri  https://cotw-segnalazioni.dartagnan586e.workers.dev/contributi/stato
+    deve rispondere con {"versione":...,"totale":0,...}. Se dice "deposito non configurato" manca il punto 3.
+ (Facoltativo) Per annunciare i contributi in un altro canale: webhook di quel canale -> segreto WEBHOOK_CONTRIBUTI.
+
 SE QUALCUNO FA SPAM: su Discord elimini il webhook e ne fai uno nuovo, poi su Cloudflare cambi solo il
 segreto WEBHOOK (punto C). Il programma non va rifatto.
-Per cambiare i limiti: in worker.js le righe LIMITE_ORA_PER_PC e LIMITE_ORA_TOTALE.
+Per cambiare i limiti: in worker.js le righe LIMITE_ORA_PER_PC, LIMITE_ORA_TOTALE, PRENOTA_MAX, PRENOTA_ORE.
+Limiti gratuiti di Cloudflare KV: 1.000 scritture al giorno (= circa 1.000 battute ricevute al giorno), 1 GB di spazio.

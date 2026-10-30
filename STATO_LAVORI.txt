@@ -5,10 +5,30 @@ DA AGGIORNARE A OGNI PASSO. Chi riprende il lavoro (Claude o un'altra AI) legge 
   2) ..\ISTRUZIONI_PROGETTO.txt (la mod: voci, testi, script, regole)
   3) il documento di progetto "Progetto programma Mod Italiana CotW" (Claude Docs, nel profilo dell'utente)
 
-ULTIMO AGGIORNAMENTO: 30/10/2026 - TAPPA 2 SCRITTA E PROVATA (con un finto GitHub): aggiornamenti da GitHub,
-  scheda Segnala errore (Discord), tasto Ko-fi (barra a sinistra + Impostazioni). Codice caricato su GitHub.
-  MANCA: l'utente crea il token GitHub e fa la PRIMA PUBBLICAZIONE (1.0.0) con strumenti\PUBBLICA_AGGIORNAMENTO.bat
-  (prima 1 = prova, poi 2 = davvero). Poi prova 'Scarica e installa' dal programma.
+ULTIMO AGGIORNAMENTO: 30/10/2026 - CONTRIBUISCI (tappa 5, anticipata su richiesta) SCRITTA E PROVATA con finti
+  ElevenLabs/GitHub/postino. Programma 0.3.0. MANCA lato utente: aggiornare il postino su Cloudflare + deposito KV
+  (binding DEPOSITO) + segreto ADMIN + postino_admin.txt  (postino\ISTRUZIONI_POSTINO.txt, sezione E).
+  CONTRIBUISCI - come funziona:
+  - Autore: PUBBLICA_AGGIORNAMENTO.bat chiede "Apro il doppiaggio alla community?" (SOLO a testi ricontrollati)
+    -> pubblica.py --apri-doppiaggio -> strumenti\da_doppiare.py crea da_doppiare_<v>.json: battute senza audio nella
+    MOD + quelle in da_rifare.txt, con testo gia' passato da pronunce_el + testo_tts, voce (voci_elevenlabs.json/NOTI),
+    frase prima/dopo, velocita' (VEL/CAL), modello e impostazioni = genera_elevenlabs.py (SE CAMBIANO LI', CAMBIARE
+    ANCHE da_doppiare.py). In versione.json: "da_doppiare" {nome,tag,sha256,numero} e "contributori" (da
+    mod italiano\contributi\contributori.json).
+  - Utente (scheda Contribuisci, indice 6; Impostazioni ora indice 7): popup una volta per versione; link account e
+    chiave ElevenLabs (+ video se online.json ha "video_chiave"); chiave salvata cifrata DPAPI in
+    %APPDATA%\CotW Italiano\chiave_elevenlabs.bin solo se spunta 'Ricorda'; crediti letti da /user/subscription;
+    prenota al postino (max 60, scadenza 3 ore), genera con ElevenLabs dal SUO PC, manda ogni mp3 al postino subito;
+    se si ferma restituisce le non fatte; alla fine annuncio su Discord. Margine 300 crediti.
+  - Postino (worker.js): /contributi/stato|prenota|audio|libera|fine, /admin/audio (X-Admin = segreto ADMIN). Audio
+    in KV 'audio:<id>' con metadata chi. Elenco battute valido letto dalla Release su GitHub (cache 5 min).
+  - Autore: strumenti\RICEVI_CONTRIBUTI.bat: 1 scarica in mod italiano\contributi\da_ascoltare\<nome>\ (+TESTI.txt);
+    ascolti e CANCELLI quelli brutti; 2 accetta: el_raw + wav_generati + _finali.txt, tolti da da_rifare,
+    installa_voci --lista _contributi_in_lavorazione.txt + applica_correzioni; le scartate tornano libere;
+    3 pulisci il postino dopo la pubblicazione. Poi 3_CREA_PACCHETTI + PUBBLICA (i nomi vanno nei ringraziamenti).
+  PROSSIMO: app sviluppatore "CotW Italiano - Sviluppatore" (GUI per: scansione dopo update del gioco, doppia/apri
+  alla community, ricevi contributi, crea pacchetti, pubblica), poi tappa 4 (.exe + VirusTotal).
+  Prima: tappa 2 chiusa (aggiornamenti GitHub, Segnala con postino, Discord, Ko-fi).
   + Segnala RIFATTA SEMPLICE (richiesta utente): 1 Mappa (tendina), 2 Problema (tendina Audio:/Scritto:/Altro),
     3 frase sbagliata (sotto compaiono max 3 battute simili, cliccarne una e' facoltativo), 4 cosa non va, nome Discord,
     tasto 'Invia segnalazione' = INVIO DIRETTO tramite il POSTINO (Cloudflare Worker gratis, cartella postino\):
@@ -63,7 +83,7 @@ TAPPE
        Discord: https://discord.gg/xPgHkstTDn   Ko-fi: https://ko-fi.com/mirkodls
 [ ] 3. Dopo una patch del gioco (rifare testi dalla versione nuova, elenco battute nuove) + strumento "Pubblica"
 [ ] 4. .exe (PyInstaller cartella, build da GitHub), VirusTotal, pubblicazione
-[ ] 5. Contribuisci + Sostenitori + server Oracle
+[~] 5. Contribuisci (fatta: postino Cloudflare + KV al posto di Oracle; ringraziamenti nella scheda) -> manca setup Cloudflare
 
 FILE DEL PROGRAMMA (cartella Desktop\mod italiano\CotW Italiano)
 - CotW_Italiano.py ........ avvio (errori senza console -> %APPDATA%\CotW Italiano\errori.log)
@@ -77,11 +97,15 @@ FILE DEL PROGRAMMA (cartella Desktop\mod italiano\CotW Italiano)
                              apps\518790\LaunchOptions, backup in %APPDATA%\CotW Italiano\backup_steam), collegamento .lnk
 - cotw\core\rete.py ....... indirizzi GitHub/Discord/Ko-fi, lettura versione.json, scaricamento con controllo SHA-256
 - cotw\core\aggiornamenti.py cache scaricati, scelta pacchetti (piccolo o base+agg.), riuso dalla dropzone, confronto
+- cotw\core\contribuisci.py chiave (DPAPI), crediti, genera ElevenLabs, prenota/consegna al postino
 - cotw\core\segnala.py ..... ricerca battuta (senza accenti, tutte le parole), messaggio pronto per Discord
 - cotw\ui\finestra.py ...... 7 schede (Home, Installa, Avvio gioco, Salvataggi, Strumenti, Segnala errore,
                              Impostazioni); lavori lunghi in QThread con barra; controllo online all'avvio
 - strumenti\pubblica.py .... (solo autore) crea pacchetti + Release su GitHub; --prova non carica niente
-- strumenti\PUBBLICA_AGGIORNAMENTO.bat  menu prova / pubblica
+- strumenti\PUBBLICA_AGGIORNAMENTO.bat  menu prova / pubblica (+ domanda 'apro il doppiaggio alla community?')
+- strumenti\da_doppiare.py  elenco battute per la community (stesse regole di genera_elevenlabs.py)
+- strumenti\ricevi_contributi.py + RICEVI_CONTRIBUTI.bat  scarica / accetta / pulisci i contributi
+- postino\worker.js + ISTRUZIONI_POSTINO.txt  il postino Cloudflare (segnalazioni + contributi)
 - cotw\ui\stile.py ......... tema scuro, accento verde
 - risorse\missions_missiondata_adf  file delle missioni azzerate;  risorse\spunta.svg (spunta caselle)
 - .gitignore ............... esclude .venv, token, chiavi, _pubblica
