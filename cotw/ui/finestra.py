@@ -1010,8 +1010,9 @@ class Finestra(QMainWindow):
             self.s_commento.clear()
             self.s_cerca.clear()
             self.statusBar().showMessage('Segnalazione inviata.')
-            self._messaggio('Segnalazione inviata', 'Grazie! La segnalazione e\' arrivata sul Discord della mod.\n'
-                                                   'Verra\' corretta in un prossimo aggiornamento.')
+            self._messaggio('Grazie!', 'Grazie mille per la segnalazione!\n\n'
+                                       'E\' arrivata sul Discord della mod e verra\' controllata e corretta in un prossimo '
+                                       'aggiornamento.\nCosi\' aiuti a migliorare la traduzione per tutti.')
 
         def errore(e):
             self.s_invia.setEnabled(True)
