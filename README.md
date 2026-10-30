@@ -5,7 +5,7 @@ Di **Mirko Del Sette**.
 
 ## ⬇️ Scarica
 
-**[Scarica l'ultima versione del programma](https://github.com/mirkodls/cotw-italiano/releases/tag/programma-v0.4.0)** → in fondo alla pagina, sotto *Assets*, scarica `CotW_Italiano_0.4.0.zip`.
+**[Scarica l'ultima versione del programma](https://github.com/mirkodls/cotw-italiano/releases/tag/programma-v0.5.0)** → in fondo alla pagina, sotto *Assets*, scarica `CotW_Italiano_0.5.0.zip`.
 
 1. Estrai lo zip dove vuoi (per esempio sul Desktop).
 2. Apri **`CotW Italiano.exe`**.
