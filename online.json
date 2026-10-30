@@ -1,13 +1,10 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.0",
-  "sha256": "0b755142817cf6721f5d2c991414069863e36858f3d2a3699044a60282ea688c",
-  "dimensione": 31671731,
-  "novita": [
-   "Controllo prima di giocare",
-   "Tasti piu chiari"
-  ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.0/CotW_Italiano_0.5.0.zip"
+  "versione": "0.5.1",
+  "sha256": "f671f726faae2993c99a7fcfc60ecb9f8791edf560484f4c72f6d6c73ed1d61a",
+  "dimensione": 31675843,
+  "novita": [],
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.1/CotW_Italiano_0.5.1.zip"
  }
 }
