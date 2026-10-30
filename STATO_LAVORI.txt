@@ -9,8 +9,16 @@ ULTIMO AGGIORNAMENTO: 30/10/2026 - TAPPA 2 SCRITTA E PROVATA (con un finto GitHu
   scheda Segnala errore (Discord), tasto Ko-fi (barra a sinistra + Impostazioni). Codice caricato su GitHub.
   MANCA: l'utente crea il token GitHub e fa la PRIMA PUBBLICAZIONE (1.0.0) con strumenti\PUBBLICA_AGGIORNAMENTO.bat
   (prima 1 = prova, poi 2 = davvero). Poi prova 'Scarica e installa' dal programma.
-  + Segnala: menu Mappa e Personaggio (mostrano tutte le frasi), parole facoltative; elenco frasi scaricato da solo
-    all'avvio (controllo online). Tasto 'Entra nel Discord' nella barra a sinistra (sopra Ko-fi).
+  + Segnala RIFATTA SEMPLICE (richiesta utente): 1 Mappa (tendina), 2 Problema (tendina Audio:/Scritto:/Altro),
+    3 frase sbagliata (sotto compaiono max 3 battute simili, cliccarne una e' facoltativo), 4 cosa non va, nome Discord,
+    tasto 'Invia segnalazione' = INVIO DIRETTO al canale con WEBHOOK Discord (niente copia-incolla).
+    Webhook: in online.json del repository (raw.githubusercontent.com/mirkodls/cotw-italiano/main/online.json),
+    campo "segnalazioni" = base64 dell'URL al contrario (segnala.maschera(url)); solo contro i bot che cercano webhook,
+    NON e' un segreto vero. Limite 5/ora e 20/giorno per PC; nessuna menzione @everyone. Se l'invio fallisce copia il
+    messaggio e propone di aprire Discord. Se qualcuno fa spam: rigenerare il webhook su Discord e aggiornare online.json.
+    MANCA: l'utente crea il webhook (canale segnalazioni -> Modifica canale -> Integrazioni -> Webhook) e salva l'URL in
+    Desktop\mod italiano\discord_webhook.txt; Claude lo legge, lo maschera e lo mette in online.json.
+  + Tasto 'Entra nel Discord' nella barra a sinistra (sopra Ko-fi).
   Prima pubblicazione 1.0.0 lanciata dall'utente il 30/10 (caricamento in corso).
   Prima: TAPPA 1 PROVATA DALL'UTENTE: 'sembra tutto ok'.
   (Da confermare: test reale di 'Imposta in automatico' Steam e collegamento desktop.)

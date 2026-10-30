@@ -42,6 +42,8 @@ QPushButton:hover {{ background: #323a3f; }}
 #barra QPushButton#dona {{ color: #f3c58a; background: #2b2419; border: 1px solid #5a4325; border-radius: 8px; text-align: center; font-weight: 600; margin: 4px 14px 8px 14px; padding: 9px 10px; }}
 #barra QPushButton#dona:hover {{ background: #3a2f1e; color: #ffd9a6; }}
 QPushButton:disabled {{ color: #6b7174; background: #22272a; border-color: #2c3135; }}
+QPushButton#scelta {{ padding: 10px 12px; font-weight: 600; }}
+QPushButton#scelta:checked {{ background: #22302a; border: 2px solid {VERDE}; color: white; }}
 QPushButton#primario {{ background: {VERDE_SCURO}; border: 1px solid {VERDE}; color: white; font-weight: 600; }}
 QPushButton#primario:hover {{ background: {VERDE}; }}
 QPushButton#pericolo {{ background: #4a2522; border: 1px solid {ROSSO}; color: #ffd9d5; font-weight: 600; }}
