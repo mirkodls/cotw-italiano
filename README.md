@@ -3,6 +3,9 @@
 Programma per installare e aggiornare la traduzione italiana (testo e doppiaggio) di **theHunter: Call of the Wild**.
 Di Mirko Del Sette.
 
+## ⬇️ Scarica il programma
+**[CotW Italiano – ultima versione del programma (zip)](https://github.com/mirkodls/cotw-italiano/releases/tag/programma-v0.4.0)** → scarica `CotW_Italiano_0.4.0.zip`, estrailo e apri `CotW Italiano.exe`. Dopo si aggiorna da solo.
+
 - Installa testo e doppiaggio insieme o separati, scaricandoli da questo repository (sezione *Releases*)
   e controllando l'integrita' di ogni file. Tocca solo la cartella `dropzone`: i file originali del gioco non vengono modificati.
 - Opzioni di avvio di Steam, backup dei salvataggi con nome, azzeramento missioni, volume del quad.
