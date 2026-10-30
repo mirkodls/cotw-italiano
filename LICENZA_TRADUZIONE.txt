@@ -1,0 +1,26 @@
+﻿LICENZE - CotW Italiano (di Mirko Del Sette)
+============================================
+
+1) IL PROGRAMMA (codice in questo repository: cartelle cotw, strumenti, postino, file .py e .bat)
+   Licenza GNU GPL versione 3 (file LICENSE).
+   In breve: puoi usarlo, studiarlo, modificarlo e ridistribuirlo, ma le versioni modificate devono
+   restare open source con la stessa licenza e devono citare l'autore originale.
+
+2) LA TRADUZIONE E IL DOPPIAGGIO ITALIANI (testi tradotti, sottotitoli, file audio .wavc/.mp3 della mod,
+   scaricati dalle Release di questo repository o da Nexus Mods)
+   Licenza Creative Commons Attribuzione - Non commerciale - Non opere derivate 4.0 Internazionale
+   (CC BY-NC-ND 4.0): https://creativecommons.org/licenses/by-nc-nd/4.0/deed.it
+   In breve:
+   - puoi scaricarla, usarla e condividerla cosi' com'e', gratis, citando "Mirko Del Sette";
+   - NON puoi venderla ne' usarla per guadagnarci;
+   - NON puoi ripubblicarne versioni modificate (per correzioni: usa "Segnala errore" nel programma).
+   Questa licenza riguarda solo il lavoro di traduzione e doppiaggio di Mirko Del Sette e di chi ha
+   contribuito (vedi i ringraziamenti nel programma).
+
+3) IL GIOCO
+   theHunter: Call of the Wild, i suoi testi originali, nomi e marchi appartengono a Expansive Worlds /
+   Avalanche Studios Group. Questo e' un progetto amatoriale e gratuito, non ufficiale e non affiliato.
+   La mod non modifica i file originali del gioco (usa solo la cartella "dropzone").
+
+4) LE VOCI
+   Le voci italiane sono generate con ElevenLabs (https://elevenlabs.io).

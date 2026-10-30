@@ -1,0 +1,81 @@
+# Costruisce l'exe di CotW Italiano sui computer Windows di GitHub e lo pubblica.
+# Si avvia a mano: GitHub -> Actions -> "Crea exe del programma" -> Run workflow.
+# La versione e' quella scritta in cotw/__init__.py (VERSIONE).
+name: Crea exe del programma
+
+on:
+  workflow_dispatch:
+    inputs:
+      novita:
+        description: "Novita' di questa versione (separate da ;)"
+        required: false
+        default: ""
+      pubblica:
+        description: "Pubblicala per tutti (il programma si aggiornera' da solo)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Componenti
+        run: python -m pip install --disable-pip-version-check PySide6==6.10.1 nuitka ordered-set zstandard
+
+      - name: Crea l'exe (Nuitka)
+        id: nuitka
+        continue-on-error: true
+        run: python strumenti/costruisci_exe.py --metodo nuitka
+
+      - name: Piano B (PyInstaller con bootloader compilato qui)
+        if: steps.nuitka.outcome != 'success'
+        env:
+          PYINSTALLER_COMPILE_BOOTLOADER: "1"
+        run: |
+          python -m pip install --no-binary pyinstaller pyinstaller
+          python strumenti/costruisci_exe.py --metodo pyinstaller
+
+      - name: Salva il risultato (scaricabile dalla pagina di questa esecuzione)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CotW_Italiano
+          path: |
+            dist/*.zip
+            dist/programma.json
+
+      - name: Pubblica (Release + online.json)
+        if: inputs.pubblica
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOVITA: ${{ inputs.novita }}
+        shell: python
+        run: |
+          import json, os, subprocess
+          info = json.load(open('dist/programma.json'))
+          tag = 'programma-v' + info['versione']
+          zp = os.path.join('dist', info['zip'])
+          novita = [x.strip() for x in os.environ.get('NOVITA', '').split(';') if x.strip()]
+          note = 'Programma CotW Italiano %s\n\n' % info['versione'] + '\n'.join('- ' + x for x in novita)
+          note += '\n\nSHA-256: ' + info['sha256']
+          subprocess.run(['gh', 'release', 'create', tag, zp, '--title', 'Programma CotW Italiano ' + info['versione'],
+                          '--notes', note, '--latest=false'], check=True)
+          o = json.load(open('online.json', encoding='utf-8'))
+          o['programma'] = {'versione': info['versione'], 'sha256': info['sha256'], 'dimensione': info['dimensione'],
+                            'novita': novita,
+                            'url': 'https://github.com/%s/releases/download/%s/%s' % (os.environ['GITHUB_REPOSITORY'], tag, info['zip'])}
+          json.dump(o, open('online.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+          for c in (['git', 'config', 'user.name', 'github-actions[bot]'],
+                    ['git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'],
+                    ['git', 'add', 'online.json'],
+                    ['git', 'commit', '-m', 'Programma %s pubblicato' % info['versione']],
+                    ['git', 'push']):
+              subprocess.run(c, check=True)
