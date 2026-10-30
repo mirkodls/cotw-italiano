@@ -5,7 +5,26 @@ DA AGGIORNARE A OGNI PASSO. Chi riprende il lavoro (Claude o un'altra AI) legge 
   2) ..\ISTRUZIONI_PROGETTO.txt (la mod: voci, testi, script, regole)
   3) il documento di progetto "Progetto programma Mod Italiana CotW" (Claude Docs, nel profilo dell'utente)
 
-ULTIMO AGGIORNAMENTO: 30/10/2026 - CONTRIBUISCI (tappa 5, anticipata su richiesta) SCRITTA E PROVATA con finti
+ULTIMO AGGIORNAMENTO: 30/10/2026 - Programma 0.4.0: AGGIORNAMENTO AUTOMATICO DEL PROGRAMMA + LICENZE + EXE COSTRUITO
+  DA GITHUB. (Setup Cloudflare per Contribuisci FATTO dall'utente: DEPOSITO + ADMIN + postino_admin.txt.)
+  - EXE: l'exe fatto con PyInstaller sul PC dell'utente e' risultato 4/71 su VirusTotal (Microsoft Wacatac.C!ml ecc.:
+    tipici falsi positivi di PyInstaller). NON distribuire quello. L'exe ufficiale lo costruisce GitHub Actions
+    (.github/workflows/crea_exe.yml, avvio a mano: Actions -> "Crea exe del programma" -> Run workflow) con
+    Python 3.13 + Nuitka (Nuitka non supporta ancora Python 3.14 del PC), piano B PyInstaller con bootloader
+    compilato. Nome/autore/versione dentro l'exe. Script unico: strumenti\costruisci_exe.py (lo usa anche CREA_EXE.bat).
+    Con "pubblica" spuntato: Release 'programma-vX' (NON latest, altrimenti si rompe versione.json della mod) e
+    online.json["programma"] = {versione,url,sha256,dimensione,novita} committato dal bot.
+  - AUTO-AGGIORNAMENTO: cotw\core\programma.py. All'avvio legge online.json: se c'e' una versione piu' nuova ->
+    popup (una volta per versione) + banner Home + riquadro Impostazioni. Scarica lo zip in %APPDATA%\CotW Italiano\
+    aggiornamento, verifica SHA, estrae, scrive aggiorna.cmd (aspetta il PID, robocopy /E sopra la cartella dell'exe,
+    riavvia) e chiude il programma. Funziona solo da exe ("CotW Italiano.exe"); da Python rimanda alle Release.
+    DA PROVARE SU WINDOWS la sostituzione vera.
+  - LICENZE: LICENSE = GPL-3.0 (codice). LICENZA_TRADUZIONE.txt = CC BY-NC-ND 4.0 (traduzione e doppiaggio) +
+    nota su Expansive Worlds/Avalanche e ElevenLabs. Testo anche in Impostazioni e README.
+  - FIRMA: opzioni = SignPath Foundation (gratis per open source: licenza OSI, build automatica verificabile, MFA,
+    pagina "code signing policy", approvazione manuale) oppure Certum Open Source Code Signing (~49 euro/anno cloud).
+  - Falso positivo: segnalare a Microsoft (microsoft.com/wdsi/filesubmission) il file costruito da GitHub se segnalato.
+PRIMA: CONTRIBUISCI (tappa 5, anticipata su richiesta) SCRITTA E PROVATA con finti
   ElevenLabs/GitHub/postino. Programma 0.3.0. MANCA lato utente: aggiornare il postino su Cloudflare + deposito KV
   (binding DEPOSITO) + segreto ADMIN + postino_admin.txt  (postino\ISTRUZIONI_POSTINO.txt, sezione E).
   CONTRIBUISCI - come funziona:
@@ -82,7 +101,7 @@ TAPPE
        pubblica solo a caricamento finito). Token in Desktop\mod italiano\github_token.txt (MAI condividerlo).
        Discord: https://discord.gg/xPgHkstTDn   Ko-fi: https://ko-fi.com/mirkodls
 [ ] 3. Dopo una patch del gioco (rifare testi dalla versione nuova, elenco battute nuove) + strumento "Pubblica"
-[ ] 4. .exe (PyInstaller cartella, build da GitHub), VirusTotal, pubblicazione
+[~] 4. .exe costruito da GitHub Actions (Nuitka) + auto-aggiornamento + licenze FATTI; manca: prima build, VirusTotal, firma, Nexus
 [~] 5. Contribuisci (fatta: postino Cloudflare + KV al posto di Oracle; ringraziamenti nella scheda) -> manca setup Cloudflare
 
 FILE DEL PROGRAMMA (cartella Desktop\mod italiano\CotW Italiano)
