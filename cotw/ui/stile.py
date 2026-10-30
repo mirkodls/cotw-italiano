@@ -46,6 +46,7 @@ QPushButton#scelta {{ padding: 10px 12px; font-weight: 600; }}
 QPushButton#scelta:checked {{ background: #22302a; border: 2px solid {VERDE}; color: white; }}
 QPushButton#primario {{ background: {VERDE_SCURO}; border: 1px solid {VERDE}; color: white; font-weight: 600; }}
 QPushButton#primario:hover {{ background: {VERDE}; }}
+QPushButton#primario:disabled, QPushButton#pericolo:disabled {{ color: #6b7174; background: #22272a; border-color: #2c3135; }}
 QPushButton#pericolo {{ background: #4a2522; border: 1px solid {ROSSO}; color: #ffd9d5; font-weight: 600; }}
 QPushButton#pericolo:hover {{ background: #5e2e2a; }}
 QLineEdit, QComboBox {{ background: #121517; border: 1px solid {BORDO}; border-radius: 6px; padding: 6px 8px; }}

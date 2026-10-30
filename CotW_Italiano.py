@@ -14,6 +14,12 @@ def main():
         log = open(os.path.join(percorsi.dati_app(), 'errori.log'), 'a', encoding='utf-8', buffering=1)
         sys.stderr = sys.stdout = log
     app = QApplication(sys.argv)
+    if '--gioco' in sys.argv:                  # premuto Gioca (Steam o collegamento): controllo veloce e via
+        app.setApplicationName('CotW Italiano')
+        app.setStyle('Fusion')
+        app.setStyleSheet(stile.QSS)
+        from cotw.ui import prima_di_giocare
+        sys.exit(prima_di_giocare.esegui(sys.argv))
     app.setApplicationName('CotW Italiano')
     app.setStyle('Fusion')
     app.setStyleSheet(stile.QSS)

@@ -61,7 +61,7 @@ def prepara(info, avanzamento=None, fermati=None):
     raise RuntimeError('Nel pacchetto scaricato manca %s.' % NOME_EXE)
 
 
-def installa_e_riavvia(nuova):
+def installa_e_riavvia(nuova, argomenti=None):
     """Avvia lo script che sostituisce i file appena il programma si chiude. Dopo questa chiamata il programma va chiuso."""
     app = cartella_exe()
     if not app:
@@ -74,7 +74,8 @@ def installa_e_riavvia(nuova):
              'goto attendi',
              ':copia',
              'robocopy "%s" "%s" /E /R:10 /W:1 /NFL /NDL /NJH /NJS /NP >nul' % (nuova, app),
-             'start "" "%s"' % os.path.join(app, NOME_EXE)]
+             'start "" "%s"%s' % (os.path.join(app, NOME_EXE), ''.join(' "%s"' % a.replace('%', '%%').replace('"', '')
+                                                                        for a in (argomenti or [])))]
     with open(script, 'w', encoding='utf-8') as f:
         f.write('\r\n'.join(righe) + '\r\n')
     # finestra nascosta + gruppo separato: lo script sopravvive alla chiusura del programma

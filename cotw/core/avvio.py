@@ -9,6 +9,28 @@ import time
 from . import percorsi
 
 OPZIONI = '--vfs-fs dropzone --vfs-archive archives_win64 --vfs-fs .'
+# "Controllo prima di giocare": Steam avvia prima CotW Italiano.exe, che controlla gli aggiornamenti e poi avvia il gioco
+# (%command% e' il gioco: Steam lo sostituisce da solo). Esempio:  "C:\...\CotW Italiano.exe" --gioco %command% --vfs-fs ...
+_RX_CONTROLLO = re.compile(r'"[^"]*?CotW Italiano\.exe"\s+--gioco\s+%command%\s*', re.I)
+
+
+def _dec(v):
+    """Valore VDF (come sta nel file, con \\ e \") -> testo normale."""
+    return re.sub(r'\\(.)', r'\1', v)
+
+
+def _enc(v):
+    return v.replace('\\', '\\\\').replace('"', '\\"')
+
+
+def prefisso_controllo(exe):
+    return '"%s" --gioco %%command%% ' % exe
+
+
+def controllo_attivo(opzioni):
+    """Percorso dell'exe se nelle opzioni di Steam c'e' il controllo prima di giocare, altrimenti None."""
+    m = _RX_CONTROLLO.search(opzioni or '')
+    return re.search(r'"([^"]+)"', m.group(0)).group(1) if m else None
 APP_ID = '518790'          # theHunter: Call of the Wild su Steam
 
 
@@ -138,6 +160,7 @@ def stato_steam():
             continue
         for k, v in app:
             if k.lower() == 'launchoptions':
+                v = _dec(v)
                 if '--vfs-fs dropzone' in v:
                     return 'impostate', v
                 return ('diverse' if v.strip() else 'mancano'), v
@@ -145,8 +168,9 @@ def stato_steam():
     return 'mancano', ''
 
 
-def imposta_steam(togli=False):
-    """Scrive (o toglie) le opzioni di avvio in Steam. Steam deve essere CHIUSO. Fa un backup di ogni file."""
+def imposta_steam(togli=False, controllo_exe=None, togli_controllo=False):
+    """Scrive (o toglie) le opzioni di avvio in Steam. Steam deve essere CHIUSO. Fa un backup di ogni file.
+    controllo_exe: attiva il controllo prima di giocare con questo exe.  togli_controllo: lo toglie (le opzioni restano)."""
     if steam_in_esecuzione():
         raise RuntimeError('Steam e\' aperto: chiudilo del tutto (anche dall\'icona vicino all\'orologio) e riprova.')
     files = file_config_steam()
@@ -168,18 +192,29 @@ def imposta_steam(togli=False):
         if app is None:
             continue
         att = next((c for c in app if c[0].lower() == 'launchoptions'), None)
+        val = _dec(att[1]) if att else ''
         if togli:
             if att:
-                nuovo = att[1].replace(OPZIONI, '').strip()
+                nuovo = _RX_CONTROLLO.sub('', val).replace(OPZIONI, '').strip()
                 if nuovo:
-                    att[1] = nuovo
+                    att[1] = _enc(nuovo)
                 else:
                     app.remove(att)
         else:
             if att is None:
-                app.append(['LaunchOptions', OPZIONI])
-            elif '--vfs-fs dropzone' not in att[1]:
-                att[1] = (att[1].strip() + ' ' + OPZIONI).strip()
+                att = ['LaunchOptions', '']
+                app.append(att)
+            resto = _RX_CONTROLLO.sub('', val).strip()
+            if '--vfs-fs dropzone' not in resto:
+                resto = (resto + ' ' + OPZIONI).strip()
+            if controllo_exe and not togli_controllo:
+                nuovo = prefisso_controllo(controllo_exe) + resto
+            elif togli_controllo:
+                nuovo = resto
+            else:
+                vecchio = controllo_attivo(val)         # se c'era il controllo prima di giocare, resta
+                nuovo = (prefisso_controllo(vecchio) + resto) if vecchio else resto
+            att[1] = _enc(nuovo)
         account = os.path.basename(os.path.dirname(os.path.dirname(f)))
         dst = os.path.join(bdir, 'localconfig_%s_%s.vdf' % (account, time.strftime('%Y%m%d_%H%M%S')))
         n = 2
@@ -195,7 +230,8 @@ def imposta_steam(togli=False):
 
 
 # ---------------- collegamento sul desktop (senza launcher) ----------------
-def crea_collegamento(gioco, nome='theHunter COTW con mod'):
+def crea_collegamento(gioco, nome='theHunter COTW con mod', programma_exe=None):
+    """programma_exe: il collegamento apre prima CotW Italiano (controllo aggiornamenti) e poi il gioco."""
     if not percorsi.IS_WIN:
         raise RuntimeError('Funziona solo su Windows.')
     exe = os.path.join(gioco, percorsi.EXE_GIOCO)
@@ -210,9 +246,13 @@ def crea_collegamento(gioco, nome='theHunter COTW con mod'):
     except Exception:
         pass
     lnk = os.path.join(desktop, nome + '.lnk')
-    ps = ("$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{l}');$s.TargetPath='{e}';"
+    bersaglio, argomenti, cartella = exe, OPZIONI, gioco
+    if programma_exe:
+        bersaglio, argomenti, cartella = programma_exe, '--gioco "%s" %s' % (exe, OPZIONI), os.path.dirname(programma_exe)
+    ps = ("$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{l}');$s.TargetPath='{t}';"
           "$s.Arguments='{a}';$s.WorkingDirectory='{w}';$s.IconLocation='{e},0';$s.Save()").format(
-        l=lnk.replace("'", "''"), e=exe.replace("'", "''"), a=OPZIONI, w=gioco.replace("'", "''"))
+        l=lnk.replace("'", "''"), t=bersaglio.replace("'", "''"), e=exe.replace("'", "''"),
+        a=argomenti.replace("'", "''"), w=cartella.replace("'", "''"))
     r = subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps],
                        capture_output=True, text=True, creationflags=0x08000000)
     if r.returncode != 0 or not os.path.isfile(lnk):

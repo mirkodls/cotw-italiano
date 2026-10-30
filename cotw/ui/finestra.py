@@ -686,6 +686,31 @@ class Finestra(QMainWindow):
                                           'Qui le imposti con un clic.')
         f, l = scheda()
         riga = QHBoxLayout()
+        riga.addWidget(etichetta('Controllo prima di giocare (consigliato)', 'nome', False))
+        riga.addStretch(1)
+        self.a_ctrl = etichetta('', None, False)
+        riga.addWidget(self.a_ctrl)
+        l.addLayout(riga)
+        l.addWidget(etichetta('Quando premi Gioca su Steam (o l\'icona sul desktop) si apre per un attimo CotW Italiano: '
+                              'se c\'e\' un aggiornamento della traduzione o del programma te lo chiede, poi avvia il '
+                              'gioco. Cosi\' la traduzione resta sempre aggiornata senza aprire il programma. '
+                              'Senza internet il gioco parte subito. Steam deve essere chiuso per attivarlo.', 'tenue'))
+        self.a_ctrl_info = etichetta('', 'avviso')
+        self.a_ctrl_info.hide()
+        l.addWidget(self.a_ctrl_info)
+        r = QHBoxLayout()
+        self.a_ctrl_on = bottone('Attiva', 'primario')
+        self.a_ctrl_on.clicked.connect(lambda: self._controllo(True))
+        r.addWidget(self.a_ctrl_on)
+        self.a_ctrl_off = bottone('Disattiva')
+        self.a_ctrl_off.clicked.connect(lambda: self._controllo(False))
+        r.addWidget(self.a_ctrl_off)
+        r.addStretch(1)
+        l.addLayout(r)
+        lay.addWidget(f)
+
+        f, l = scheda()
+        riga = QHBoxLayout()
         riga.addWidget(etichetta('Steam', 'nome', False))
         riga.addStretch(1)
         self.a_stato = etichetta('', None, False)
@@ -750,15 +775,52 @@ class Finestra(QMainWindow):
         self.a_stato.style().unpolish(self.a_stato)
         self.a_stato.style().polish(self.a_stato)
         self.a_steam_aperto.setVisible(st != 'impostate' and avvio.steam_in_esecuzione())
+        exe = programma.cartella_exe()
+        exe = os.path.join(exe, programma.NOME_EXE) if exe else None
+        att = avvio.controllo_attivo(testo)
+        if not exe:
+            self._imposta(self.a_ctrl, 'Solo con il programma .exe', 'tenue')
+            self.a_ctrl_on.setEnabled(False)
+            self.a_ctrl_off.setEnabled(bool(att))
+            self.a_ctrl_info.hide()
+        else:
+            self.a_ctrl_on.setEnabled(True)
+            self.a_ctrl_off.setEnabled(bool(att))
+            spostato = bool(att) and os.path.normcase(att) != os.path.normcase(exe)
+            self._imposta(self.a_ctrl, 'Attivo' if att and not spostato else ('Da riattivare' if spostato else 'Spento'),
+                          'ok' if att and not spostato else 'attenzione')
+            self.a_ctrl_info.setText('Hai spostato la cartella del programma: premi "Attiva" per aggiornare Steam '
+                                     '(altrimenti Gioca non parte).' if spostato else '')
+            self.a_ctrl_info.setVisible(spostato)
         return st
 
     def _steam(self, togli):
         if not self._pronto(serve_gioco=False):
             return
         try:
-            n = avvio.imposta_steam(togli=togli)
+            exe = programma.cartella_exe()
+            n = avvio.imposta_steam(togli=togli, controllo_exe=os.path.join(exe, programma.NOME_EXE) if exe and not togli
+                                    else None)
             self._messaggio('Fatto', ('Opzioni tolte da Steam.' if togli else
                                       'Opzioni di avvio impostate in Steam (%d account). Ora puoi aprire Steam e giocare.' % n))
+        except Exception as e:
+            self._messaggio('Non riesco', str(e), 'avviso')
+        self.aggiorna_tutto()
+
+    def _controllo(self, attiva):
+        if not self._pronto(serve_gioco=False):
+            return
+        exe = programma.cartella_exe()
+        try:
+            if attiva:
+                n = avvio.imposta_steam(controllo_exe=os.path.join(exe, programma.NOME_EXE))
+                self._messaggio('Fatto', 'Controllo prima di giocare attivo (%d account Steam).\n\nDa ora premi Gioca su '
+                                         'Steam come sempre: CotW Italiano si apre un attimo, controlla gli aggiornamenti '
+                                         'e avvia il gioco.\n\nSe sposti la cartella del programma, torna qui e premi di '
+                                         'nuovo Attiva.' % n)
+            else:
+                avvio.imposta_steam(togli_controllo=True)
+                self._messaggio('Fatto', 'Controllo prima di giocare spento: il gioco parte direttamente con le mod.')
         except Exception as e:
             self._messaggio('Non riesco', str(e), 'avviso')
         self.aggiorna_tutto()
@@ -768,7 +830,9 @@ class Finestra(QMainWindow):
             self._messaggio('Gioco non trovato', 'Indica la cartella del gioco nella scheda Impostazioni.', 'avviso')
             return
         try:
-            p = avvio.crea_collegamento(self.gioco)
+            exe = programma.cartella_exe()
+            p = avvio.crea_collegamento(self.gioco, 'theHunter COTW in italiano' if exe else 'theHunter COTW con mod',
+                                        os.path.join(exe, programma.NOME_EXE) if exe else None)
             self._messaggio('Fatto', 'Collegamento creato:\n%s' % p)
         except Exception as e:
             self._messaggio('Non riesco', str(e), 'errore')
