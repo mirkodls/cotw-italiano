@@ -1,3 +1,10 @@
 {
- "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev"
+ "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
+ "programma": {
+  "versione": "0.4.0",
+  "sha256": "377e9064a9934d63cfa942e952fec2c31a4f76badba1ae8c05d8fefee70649bd",
+  "dimensione": 31624933,
+  "novita": [],
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.4.0/CotW_Italiano_0.4.0.zip"
+ }
 }
