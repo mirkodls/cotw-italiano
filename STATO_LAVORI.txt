@@ -19,6 +19,7 @@ ULTIMO AGGIORNAMENTO: 30/10/2026 - TAPPA 2 SCRITTA E PROVATA (con un finto GitHu
     Provato in locale (postino con node + Discord finto): ok.
     POSTINO ATTIVO (30/10): https://cotw-segnalazioni.dartagnan586e.workers.dev (account Cloudflare dell'utente,
     segreto WEBHOOK impostato, Cloudflare Access spento) -> scritto in online.json su GitHub.
+    PROVATO DALL'UTENTE: invio dal programma arriva sul Discord. TAPPA 2 CHIUSA. Prossima: tappa 4 (.exe + VirusTotal).
   + Tasto 'Entra nel Discord' nella barra a sinistra (sopra Ko-fi).
   PRIMA PUBBLICAZIONE 1.0.0 FATTA (30/10) e verificata; 'Scarica e installa' sul PC dell'utente: 0 MB scaricati,
   riusati i file gia' presenti, 'Installato (1.0.0)'. FUNZIONA.
@@ -49,7 +50,7 @@ TAPPE
        automatico a Steam chiuso + collegamento desktop senza launcher + istruzioni Epic), Salvataggi (backup con nome,
        ripristina/rinomina/elimina, azzera missioni), Strumenti (volume quad), Impostazioni.  -> PROVATA OK 30/10
        DA TESTARE BENE sul PC vero: 'Imposta in automatico' Steam e 'Crea collegamento sul desktop'.
-[~] 2. GitHub + aggiornamenti automatici + scheda Segnala (Discord) + Ko-fi  -> SCRITTA E PROVATA, manca 1a pubblicazione
+[x] 2. GitHub + aggiornamenti automatici + scheda Segnala (Discord, postino Cloudflare) + Ko-fi  -> FATTA E PROVATA 30/10
        Repository PUBBLICO github.com/mirkodls/cotw-italiano (branch main) = solo CODICE del programma.
        La mod (testo + audio) sta nelle RELEASE (file allegati, max 2 GB l'uno), non nel codice:
          versione.json  (elenco: versione, novita', per ogni file l'impronta SHA-256, pacchetti)
