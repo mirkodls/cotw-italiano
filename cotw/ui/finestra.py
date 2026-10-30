@@ -7,12 +7,12 @@ import traceback
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtGui import QGuiApplication, QDesktopServices
 from PySide6.QtCore import QUrl
-from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton,
+from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton,
                                QStackedWidget, QFrame, QCheckBox, QLineEdit, QFileDialog, QProgressBar, QSlider,
                                QComboBox, QMessageBox, QButtonGroup, QScrollArea, QSizePolicy,
                                QListWidget, QListWidgetItem, QInputDialog, QPlainTextEdit)
 
-from ..core import percorsi, installa, quad, missioni, avvio, rete, aggiornamenti, segnala, contribuisci
+from ..core import percorsi, installa, quad, missioni, avvio, rete, aggiornamenti, segnala, contribuisci, programma
 from .. import VERSIONE
 from . import stile
 
@@ -321,6 +321,17 @@ class Finestra(QMainWindow):
         bl.addWidget(b)
         self.banner_agg.hide()
         lay.addWidget(self.banner_agg)
+        self.banner_prog = QFrame()
+        self.banner_prog.setObjectName('banner')
+        bl = QHBoxLayout(self.banner_prog)
+        bl.setContentsMargins(16, 10, 12, 10)
+        self.banner_prog_testo = etichetta('', None, True)
+        bl.addWidget(self.banner_prog_testo, 1)
+        b = bottone('Aggiorna programma', 'primario')
+        b.clicked.connect(self._aggiorna_programma)
+        bl.addWidget(b)
+        self.banner_prog.hide()
+        lay.addWidget(self.banner_prog)
 
         griglia = QGridLayout()
         griglia.setSpacing(14)
@@ -390,6 +401,11 @@ class Finestra(QMainWindow):
         conf = aggiornamenti.confronta(self.manifest, self.dz()) if (self.manifest and self.gioco) else {}
         da_agg = [installa.COMPONENTI[c]['nome'] for c, v in conf.items() if v[2] == 'aggiornare']
         self.banner_agg.setVisible(bool(da_agg))
+        nuova = programma.disponibile(self.c_online)
+        self.banner_prog.setVisible(bool(nuova))
+        if nuova:
+            self.banner_prog_testo.setText('E\' uscita la versione %s del programma (tu hai la %s).%s' % (
+                nuova['versione'], VERSIONE, ('  Novita\': ' + ' / '.join(nuova['novita'])) if nuova.get('novita') else ''))
         if da_agg:
             self.banner_testo.setText('E\' disponibile la versione %s della mod (%s).%s' % (
                 self.manifest['versione'], ', '.join(da_agg),
@@ -588,7 +604,8 @@ class Finestra(QMainWindow):
             self.manifest, self.errore_online, self.controllato = m, None, True
             self.c_doc, self.c_stato, self.c_online = th.doc, th.stato, th.online
             self.aggiorna_tutto()
-            self._popup_contribuisci()
+            if not self._popup_programma():
+                self._popup_contribuisci()
             if mostra:
                 self._messaggio('Aggiornamenti', self.i_online.text())
 
@@ -1330,6 +1347,21 @@ class Finestra(QMainWindow):
             self.imp[chiave] = e
             lay.addWidget(f)
         f, l = scheda()
+        l.addWidget(etichetta('Programma', 'nome'))
+        self.imp_prog = etichetta('', 'tenue')
+        l.addWidget(self.imp_prog)
+        r = QHBoxLayout()
+        self.imp_prog_b = bottone('Aggiorna programma', 'primario')
+        self.imp_prog_b.clicked.connect(self._aggiorna_programma)
+        r.addWidget(self.imp_prog_b)
+        b = bottone('Controlla')
+        b.clicked.connect(lambda: self._controlla_online(mostra=True))
+        r.addWidget(b)
+        r.addStretch(1)
+        l.addLayout(r)
+        lay.addWidget(f)
+
+        f, l = scheda()
         l.addWidget(etichetta('Sostieni il progetto', 'nome'))
         l.addWidget(etichetta('La mod e il programma sono gratis e lo resteranno. Le voci italiane costano: se vuoi dare '
                               'una mano per le mappe nuove, puoi lasciare una donazione libera su Ko-fi.', 'tenue'))
@@ -1340,12 +1372,74 @@ class Finestra(QMainWindow):
         r.addStretch(1)
         l.addLayout(r)
         lay.addWidget(f)
-        lay.addWidget(etichetta('CotW Italiano %s  -  di Mirko Del Sette. Voci create con ElevenLabs.' % VERSIONE, 'tenue'))
+        lay.addWidget(etichetta('CotW Italiano %s  -  di Mirko Del Sette. Voci create con ElevenLabs.\n'
+                                'Programma: licenza GPL-3.0 (codice su github.com/%s).  Traduzione e doppiaggio: '
+                                'CC BY-NC-ND 4.0 (gratis, citando l\'autore; vietato venderli o ripubblicarli modificati).\n'
+                                'Progetto amatoriale non ufficiale: theHunter: Call of the Wild e\' di Expansive Worlds / '
+                                'Avalanche Studios Group.' % (VERSIONE, rete.REPO), 'tenue'))
         lay.addStretch(1)
         return area
 
     def _dona(self):
         QDesktopServices.openUrl(QUrl(rete.KOFI))
+
+    def _aggiorna_impostazioni_programma(self):
+        nuova = programma.disponibile(self.c_online)
+        if nuova:
+            self.imp_prog.setText('Hai la versione %s. E\' uscita la %s.' % (VERSIONE, nuova['versione']))
+        else:
+            self.imp_prog.setText('Hai la versione %s%s.' % (VERSIONE, ': e\' la piu\' recente' if self.controllato else ''))
+        self.imp_prog_b.setVisible(bool(nuova))
+
+    def _popup_programma(self):
+        nuova = programma.disponibile(self.c_online)
+        if not nuova or not programma.cartella_exe():
+            return False
+        cfg = percorsi.leggi_config()
+        if cfg.get('popup_programma') == nuova['versione']:
+            return False
+        cfg['popup_programma'] = nuova['versione']
+        percorsi.salva_config(cfg)
+        if QMessageBox.question(self, 'Programma da aggiornare',
+                                'E\' uscita la versione %s di CotW Italiano (tu hai la %s).%s\n\nAggiorno adesso? '
+                                'Ci vuole un minuto: il programma si chiude e si riapre da solo.'
+                                % (nuova['versione'], VERSIONE, ('\n\nNovita\': ' + '; '.join(nuova['novita']))
+                                   if nuova.get('novita') else '')) == QMessageBox.Yes:
+            self._aggiorna_programma()
+        return True
+
+    def _aggiorna_programma(self):
+        nuova = programma.disponibile(self.c_online)
+        if not nuova:
+            return
+        if not programma.cartella_exe():
+            self._messaggio('Aggiorna programma', 'Stai usando il programma avviato con Python (AVVIA_COTW_ITALIANO.bat): '
+                                                  'scarica la versione nuova da GitHub.', 'avviso')
+            QDesktopServices.openUrl(QUrl(rete.PAGINA + '/releases'))
+            return
+        if self.lavoro and self.lavoro.isRunning():
+            self._messaggio('Attendi', 'C\'e\' gia\' un\'operazione in corso.', 'avviso')
+            return
+        self._vai_a(0)
+        self.statusBar().showMessage('Scarico la versione %s del programma...' % nuova['versione'])
+        self.lavoro = Lavoro(lambda av: programma.prepara(nuova, av))
+
+        def fine(cartella):
+            try:
+                programma.installa_e_riavvia(cartella)
+            except Exception as e:
+                self._messaggio('Aggiornamento non riuscito', str(e), 'errore')
+                return
+            QApplication.instance().quit()
+
+        def err(e):
+            self.statusBar().showMessage('Errore: ' + e)
+            self._messaggio('Aggiornamento non riuscito', e + '\n\nRiprova piu\' tardi: il programma funziona come prima.',
+                            'errore')
+        self.lavoro.avanzamento.connect(lambda a, b, t: self.statusBar().showMessage('%s: %d di %d' % (t, a, b)))
+        self.lavoro.finito.connect(fine)
+        self.lavoro.errore.connect(err)
+        self.lavoro.start()
 
     def _aggiorna_impostazioni(self):
         self.imp['gioco'].setText(self.gioco or 'Non trovato')
@@ -1395,6 +1489,7 @@ class Finestra(QMainWindow):
             self._aggiorna_strumenti()
             self._aggiorna_salvataggi()
             self._aggiorna_impostazioni()
+            self._aggiorna_impostazioni_programma()
             self._aggiorna_contribuisci()
             self._controlla_gioco()
         except Exception:
