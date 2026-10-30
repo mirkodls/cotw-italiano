@@ -1,0 +1,4 @@
+*.bat text eol=crlf
+*.txt text eol=crlf
+*.py text eol=lf
+risorse/missions_missiondata_adf binary

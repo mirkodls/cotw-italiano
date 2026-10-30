@@ -1,0 +1,19 @@
+﻿CotW Italiano 0.2.0 - di Mirko Del Sette
+
+AVVIO: doppio clic su AVVIA_COTW_ITALIANO.bat
+(la prima volta prepara da solo i componenti: serve internet, 1-2 minuti; poi parte subito)
+
+COSA FA
+- Home: stato di traduzione, avvio, missioni, mod online, quad; avviso quando esce una versione nuova
+- Installa: scarica da GitHub solo cio' che serve (controlla l'integrita' di ogni file), oppure da una cartella.
+  Testo e Doppiaggio insieme o separati. Tocca solo i suoi file; se trova un file di un'altra mod al suo posto
+  ne fa un backup e lo rimette quando togli la nostra.
+- Avvio gioco: opzioni di avvio Steam in automatico (a Steam chiuso) + collegamento sul desktop
+- Salvataggi: backup con nome, ripristino, azzera missioni
+- Strumenti: volume del quad
+- Segnala errore: scrivi due parole della frase, scegli il problema, il messaggio pronto va sul Discord
+- Impostazioni: cartelle + "Sostieni il progetto" (Ko-fi)
+
+I dati del programma (impostazioni, backup, file scaricati) stanno in %APPDATA%\CotW Italiano
+Codice sorgente: https://github.com/mirkodls/cotw-italiano
+Per l'autore: strumenti\PUBBLICA_AGGIORNAMENTO.bat pubblica una nuova versione su GitHub.
