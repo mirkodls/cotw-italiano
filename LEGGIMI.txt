@@ -16,4 +16,4 @@ COSA FA
 
 I dati del programma (impostazioni, backup, file scaricati) stanno in %APPDATA%\CotW Italiano
 Codice sorgente: https://github.com/mirkodls/cotw-italiano
-Per l'autore: strumenti\PUBBLICA_AGGIORNAMENTO.bat pubblica una nuova versione su GitHub.
+

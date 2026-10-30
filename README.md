@@ -43,4 +43,4 @@ Non serve installare altro. Il programma **si aggiorna da solo**: quando esce un
 
 - Avvio dal codice: `AVVIA_COTW_ITALIANO.bat` (serve Python 3).
 - Costruzione dell'exe: GitHub *Actions* → **Crea exe del programma** (Python 3.13 + Nuitka, script `strumenti/costruisci_exe.py`).
-- Stato del progetto e istruzioni per riprendere il lavoro: [STATO_LAVORI.txt](STATO_LAVORI.txt).
+- Il postino delle segnalazioni e dei contributi (Cloudflare Worker): [postino/worker.js](postino/worker.js).

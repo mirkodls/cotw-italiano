@@ -13,3 +13,11 @@ build/
 sviluppatore/casella/
 sviluppatore/
 SVILUPPATORE.bat
+# strumenti dell'autore: restano SOLO sul suo PC (mai su GitHub)
+strumenti/pubblica.py
+strumenti/ricevi_contributi.py
+strumenti/da_doppiare.py
+strumenti/PUBBLICA_AGGIORNAMENTO.bat
+strumenti/RICEVI_CONTRIBUTI.bat
+STATO_LAVORI.txt
+postino/ISTRUZIONI_POSTINO.txt
