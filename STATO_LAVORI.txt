@@ -1,0 +1,94 @@
+﻿STATO LAVORI - CotW Italiano (programma della mod italiana di theHunter: Call of the Wild)
+=========================================================================================
+DA AGGIORNARE A OGNI PASSO. Chi riprende il lavoro (Claude o un'altra AI) legge prima:
+  1) questo file
+  2) ..\ISTRUZIONI_PROGETTO.txt (la mod: voci, testi, script, regole)
+  3) il documento di progetto "Progetto programma Mod Italiana CotW" (Claude Docs, nel profilo dell'utente)
+
+ULTIMO AGGIORNAMENTO: 30/10/2026 - TAPPA 2 SCRITTA E PROVATA (con un finto GitHub): aggiornamenti da GitHub,
+  scheda Segnala errore (Discord), tasto Ko-fi (barra a sinistra + Impostazioni). Codice caricato su GitHub.
+  MANCA: l'utente crea il token GitHub e fa la PRIMA PUBBLICAZIONE (1.0.0) con strumenti\PUBBLICA_AGGIORNAMENTO.bat
+  (prima 1 = prova, poi 2 = davvero). Poi prova 'Scarica e installa' dal programma.
+  Prima: TAPPA 1 PROVATA DALL'UTENTE: 'sembra tutto ok'.
+  (Da confermare: test reale di 'Imposta in automatico' Steam e collegamento desktop.)
+  Prima: Home rifatta (Traduzione unica con un tasto, Missioni e salvataggi con
+  Azzera missioni, Avvio, Mod/online, Quad, Gioco); Salvataggi: azzeramento in cima con riquadro rosso + conferma
+  'Sei sicuro?'; installazione: confronto file completo e messaggio per componente (il 'bug' testo era solo
+  comunicazione: il registro mostrava Testo e Doppiaggio installati, il testo era gia' identico).
+  Prima: tappa 1 ampliata (Avvio gioco, Salvataggi con backup a nome)
+  Prima: tappa 1 consegnata e avviata dall'utente (PySide6 6.10.1 per Python 3.14);
+  aggiunto riconoscimento della mod gia' installata coi vecchi .bat (installa.riconosci_esistenti)
+
+DECISIONI FISSE
+- Programma solo in italiano, nome "CotW Italiano" (provvisorio), autore Mirko Del Sette.
+- Python + PySide6 6.10.1 (il PC ha Python 3.14). Ora si avvia con AVVIA_COTW_ITALIANO.bat (crea .venv al primo avvio); .exe alla tappa 4.
+- Tocca SOLO i suoi file nella dropzone (registro in %APPDATA%\CotW Italiano\stato.json); se un suo file
+  sostituisce quello di un'altra mod, backup in %APPDATA%\CotW Italiano\backup_altre_mod e ripristino alla rimozione.
+- Testo e Audio separati (insieme o uno alla volta).
+- Aggiornamenti/download: GitHub (account utente: mirkodls; Claude ha accesso). Segnalazioni: link Discord con
+  messaggio gia' pronto (copia + apri canale). Donazioni: un solo link Ko-fi senza obiettivo (ko-fi.com/mirkodls).
+- Contribuisci (chiavi ElevenLabs degli utenti) = FONDAMENTALE ma ULTIMA tappa: scheda spenta finche' non escono
+  battute nuove, poi popup "Contribuisci gratuitamente per tutta la comunita'", link account/chiave ElevenLabs + video.
+  La chiave si usa solo sul PC dell'utente; al server (Oracle Always Free) arrivano solo gli audio; approvazione manuale.
+
+TAPPE
+[x] 1. Programma base (6 schede): Home, Installa (Testo/Audio da cartella MOD), Avvio gioco (opzioni Steam scritte in
+       automatico a Steam chiuso + collegamento desktop senza launcher + istruzioni Epic), Salvataggi (backup con nome,
+       ripristina/rinomina/elimina, azzera missioni), Strumenti (volume quad), Impostazioni.  -> PROVATA OK 30/10
+       DA TESTARE BENE sul PC vero: 'Imposta in automatico' Steam e 'Crea collegamento sul desktop'.
+[~] 2. GitHub + aggiornamenti automatici + scheda Segnala (Discord) + Ko-fi  -> SCRITTA E PROVATA, manca 1a pubblicazione
+       Repository PUBBLICO github.com/mirkodls/cotw-italiano (branch main) = solo CODICE del programma.
+       La mod (testo + audio) sta nelle RELEASE (file allegati, max 2 GB l'uno), non nel codice:
+         versione.json  (elenco: versione, novita', per ogni file l'impronta SHA-256, pacchetti)
+         testo_<v>.zip, audio_completo_<v>.zip + audio_indice_<v>.json (base), audio_aggiornamento_<v>.zip
+         (solo i file cambiati rispetto alla base, cumulativo; se cambia >30% si rifa' la base), battute_<v>.json
+       Il programma legge .../releases/latest/download/versione.json, scarica in %APPDATA%\CotW Italiano\scaricati
+       solo cio' che manca (riusa i file gia' identici nella dropzone), verifica, poi copia nella dropzone.
+       Pubblicare: strumenti\PUBBLICA_AGGIORNAMENTO.bat (usa pubblica.py; la versione nasce in BOZZA e diventa
+       pubblica solo a caricamento finito). Token in Desktop\mod italiano\github_token.txt (MAI condividerlo).
+       Discord: https://discord.gg/xPgHkstTDn   Ko-fi: https://ko-fi.com/mirkodls
+[ ] 3. Dopo una patch del gioco (rifare testi dalla versione nuova, elenco battute nuove) + strumento "Pubblica"
+[ ] 4. .exe (PyInstaller cartella, build da GitHub), VirusTotal, pubblicazione
+[ ] 5. Contribuisci + Sostenitori + server Oracle
+
+FILE DEL PROGRAMMA (cartella Desktop\mod italiano\CotW Italiano)
+- CotW_Italiano.py ........ avvio (errori senza console -> %APPDATA%\CotW Italiano\errori.log)
+- cotw\__init__.py ......... VERSIONE
+- cotw\core\percorsi.py .... trova gioco (Steam/librerie/Epic), dropzone, salvataggi (Documenti\Avalanche Studios\COTW\Saves\<n>), dati app, gioco aperto?
+- cotw\core\archivi.py ..... hashlittle + lettura (sola) degli archivi game*.tab/.arc
+- cotw\core\installa.py .... componenti testo/audio: installa, rimuovi, stato, attiva/disattiva (dropzone <-> dropzone_off)
+- cotw\core\quad.py ........ volume quad (banco vehicles.fmod_bankc dagli archivi -> dropzone), volume attuale, ripristina
+- cotw\core\missioni.py .... backup con nome (_nome.txt, _origine.txt), elenco, rinomina, elimina, azzera, ripristina
+- cotw\core\avvio.py ....... opzioni di avvio: lettore/scrittore VDF di Steam (userdata\*\config\localconfig.vdf,
+                             apps\518790\LaunchOptions, backup in %APPDATA%\CotW Italiano\backup_steam), collegamento .lnk
+- cotw\core\rete.py ....... indirizzi GitHub/Discord/Ko-fi, lettura versione.json, scaricamento con controllo SHA-256
+- cotw\core\aggiornamenti.py cache scaricati, scelta pacchetti (piccolo o base+agg.), riuso dalla dropzone, confronto
+- cotw\core\segnala.py ..... ricerca battuta (senza accenti, tutte le parole), messaggio pronto per Discord
+- cotw\ui\finestra.py ...... 7 schede (Home, Installa, Avvio gioco, Salvataggi, Strumenti, Segnala errore,
+                             Impostazioni); lavori lunghi in QThread con barra; controllo online all'avvio
+- strumenti\pubblica.py .... (solo autore) crea pacchetti + Release su GitHub; --prova non carica niente
+- strumenti\PUBBLICA_AGGIORNAMENTO.bat  menu prova / pubblica
+- cotw\ui\stile.py ......... tema scuro, accento verde
+- risorse\missions_missiondata_adf  file delle missioni azzerate;  risorse\spunta.svg (spunta caselle)
+- .gitignore ............... esclude .venv, token, chiavi, _pubblica
+
+PROVE FATTE (Claude, con gioco finto)
+- installa/rimuovi testo e audio: altra mod sullo stesso file salvata e rimessa, Mod Builder intatto
+- quad: 21 suoni impostati al 40%, lettura volume, ripristino
+- disattiva/riattiva dropzone; azzera missioni + ripristino (backup con nomi unici)
+- interfaccia: screenshot delle 4 schede ok
+- opzioni Steam su config finta: aggiunte senza toccare altre opzioni/altri giochi, niente doppioni, rimozione ok
+- backup con nome + elenco + schede Avvio/Salvataggi: screenshot ok
+- riconoscimento: componente identico al pacchetto = 'Installato'; file presenti ma diversi = 'Gia' presente (diverso dal pacchetto)'
+- tappa 2 con finto GitHub locale: pubblicata 1.0.0 completa e 1.0.1 con 3 battute cambiate (pacchetto 10 KB);
+  utente nuovo scarica base+agg.; utente con mod gia' messa da Nexus riusa i suoi file e scarica solo l'agg.;
+  ricerca battute e messaggio Discord ok; screenshot Home/Installa/Segnala/Impostazioni ok
+
+PROSSIMO PASSO
+1) Utente: crea il token GitHub (fine-grained, solo repository cotw-italiano, Contents: Read and write) e lo salva in
+   Desktop\mod italiano\github_token.txt  (non incollarlo MAI in chat).
+2) Utente: 3_CREA_PACCHETTI_NEXUS.bat (se serve) -> strumenti\PUBBLICA_AGGIORNAMENTO.bat -> 1 (prova) -> 2 (davvero).
+   La prima volta carica ~600 MB dal suo PC.
+3) Prova nel programma: Installa -> Controlla aggiornamenti -> 'Scarica e installa': deve riusare i file gia' presenti
+   (scarica quasi niente) e poi segnare 'Installato (1.0.0)'.
+4) Poi tappa 3 (dopo una patch del gioco) e tappa 4 (.exe + VirusTotal).
