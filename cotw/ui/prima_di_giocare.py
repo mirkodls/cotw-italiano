@@ -117,6 +117,10 @@ class PrimaDiGiocare(QDialog):
         self.b_prog.clicked.connect(self._aggiorna_programma)
         self.b_prog.hide()
         r.addWidget(self.b_prog)
+        self.b_contr = bottone('Voglio contribuire')
+        self.b_contr.clicked.connect(self._contribuisci)
+        self.b_contr.hide()
+        r.addWidget(self.b_contr)
         self.b_gioca = bottone('Gioca subito')
         self.b_gioca.clicked.connect(self._gioca)
         r.addWidget(self.b_gioca)
@@ -142,7 +146,15 @@ class PrimaDiGiocare(QDialog):
             except Exception:
                 self.da_agg = []
         self.prog = programma.disponibile(o) if programma.cartella_exe() else None
-        if not self.da_agg and not self.prog:
+        self.contr = None                       # battute da doppiare (nuove o corrette): una volta per versione
+        d = (m or {}).get('da_doppiare')
+        if d and programma.cartella_exe():
+            cfg = percorsi.leggi_config()
+            if cfg.get('popup_contribuisci_gioco') != d.get('tag'):
+                cfg['popup_contribuisci_gioco'] = d.get('tag')
+                percorsi.salva_config(cfg)
+                self.contr = d
+        if not self.da_agg and not self.prog and not self.contr:
             return self._gioca()
         righe = []
         if self.da_agg:
@@ -154,7 +166,13 @@ class PrimaDiGiocare(QDialog):
             righe.append('E\' uscita la versione %s del programma CotW Italiano (tu hai la %s): premi "Aggiorna il '
                          'programma", si riapre da solo e poi parte il gioco.' % (self.prog['versione'], VERSIONE))
             self.b_prog.show()
-        self.testo.setText('\n'.join(righe))
+        if self.contr:
+            n = self.contr.get('numero', 0)
+            righe.append(('C\'e\' 1 battuta da ridoppiare' if n == 1 else 'Ci sono %d battute da doppiare' % n) +
+                         ' (nuove o corrette dopo le segnalazioni): vuoi contribuire gratuitamente per tutta la '
+                         'community? Basta un account ElevenLabs gratuito.')
+            self.b_contr.show()
+        self.testo.setText('\n\n'.join(righe))
         if self.da_agg:
             self.b_agg.show()
             self.b_agg.setFocus()
@@ -206,6 +224,15 @@ class PrimaDiGiocare(QDialog):
             self.accept()
         self.pp.fatto.connect(fine)
         self.pp.start()
+
+    def _contribuisci(self):
+        """Apre il programma sulla scheda Contribuisci (il gioco si avvia dopo, quando vuole l'utente)."""
+        exe = programma.cartella_exe()
+        if exe:
+            subprocess.Popen([os.path.join(exe, programma.NOME_EXE), '--contribuisci'],
+                             creationflags=0x00000008 | 0x00000200 if sys.platform == 'win32' else 0, close_fds=True)
+        self._partito = True
+        self.accept()
 
     def _gioca(self):
         if getattr(self, '_partito', False):

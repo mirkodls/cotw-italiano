@@ -64,6 +64,13 @@ class ControlloOnline(QThread):
         self.fatto.emit(m)
 
 
+def testo_popup_contribuisci(n):
+    return ('%s da doppiare in italiano (nuov%s dagli aggiornamenti del gioco o corrett%s dopo le vostre segnalazioni).\n\n'
+            'Contribuisci gratuitamente per tutta la community! Ti serve solo un account ElevenLabs gratuito: '
+            'il programma fa tutto il resto.\n\nVuoi vedere come?'
+            % (('C\'e\' 1 battuta', 'a', 'a') if n == 1 else ('Ci sono %d battute' % n, 'e', 'e')))
+
+
 class Doppiaggio(QThread):
     avanzamento = Signal(int, int, str)
     finito = Signal(int, str)
@@ -605,7 +612,12 @@ class Finestra(QMainWindow):
             self.c_doc, self.c_stato, self.c_online = th.doc, th.stato, th.online
             self.aggiorna_tutto()
             if not self._popup_programma():
-                self._popup_contribuisci()
+                if '--contribuisci' in sys.argv and not getattr(self, '_aperto_contribuisci', False):
+                    self._aperto_contribuisci = True
+                    self._vai_a(6)
+                else:
+                    self._popup_contribuisci()
+                self._proponi_controllo()
             if mostra:
                 self._messaggio('Aggiornamenti', self.i_online.text())
 
@@ -1294,10 +1306,7 @@ class Finestra(QMainWindow):
             return
         cfg['popup_contribuisci'] = d.get('tag')
         percorsi.salva_config(cfg)
-        r = QMessageBox.question(self, 'Battute nuove da doppiare',
-                                 'Il gioco ha %d battute nuove ancora senza voce italiana.\n\n'
-                                 'Contribuisci gratuitamente per tutta la community! Ti serve solo un account '
-                                 'ElevenLabs gratuito: il programma fa tutto il resto.\n\nVuoi vedere come?' % d.get('numero', 0))
+        r = QMessageBox.question(self, 'Battute da doppiare', testo_popup_contribuisci(d.get('numero', 0)))
         if r == QMessageBox.Yes:
             self._vai_a(6)
 
@@ -1454,6 +1463,31 @@ class Finestra(QMainWindow):
         else:
             self.imp_prog.setText('Hai la versione %s%s.' % (VERSIONE, ': e\' la piu\' recente' if self.controllato else ''))
         self.imp_prog_b.setVisible(bool(nuova))
+
+    def _proponi_controllo(self):
+        """Una volta sola: propone di attivare il controllo prima di giocare (solo exe, se non e' gia' attivo)."""
+        exe = programma.cartella_exe()
+        cfg = percorsi.leggi_config()
+        if not exe or cfg.get('proposto_controllo'):
+            return
+        try:
+            if avvio.controllo_attivo(avvio.stato_steam()[1]):
+                return
+        except Exception:
+            return
+        cfg['proposto_controllo'] = True
+        percorsi.salva_config(cfg)
+        if QMessageBox.question(self, 'Traduzione sempre aggiornata',
+                                'Vuoi che CotW Italiano controlli gli aggiornamenti ogni volta che premi Gioca?\n\n'
+                                'Si apre per un attimo, ti chiede se aggiornare (solo se serve) e avvia il gioco. '
+                                'Senza internet il gioco parte subito.\n\nPer attivarlo Steam deve essere chiuso: '
+                                'puoi farlo anche dopo da "Avvio gioco".') == QMessageBox.Yes:
+            self._vai_a(2)
+            if avvio.steam_in_esecuzione():
+                self._messaggio('Chiudi Steam', 'Chiudi Steam del tutto (anche dall\'icona vicino all\'orologio), poi '
+                                                'premi "Attiva" in "Controllo prima di giocare".', 'avviso')
+            else:
+                self._controllo(True)
 
     def _popup_programma(self):
         nuova = programma.disponibile(self.c_online)
