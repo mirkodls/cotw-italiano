@@ -88,9 +88,10 @@ def leggi_online(timeout=15):
         return {}
 
 
-def invia_webhook(url, testo, nome='Segnalazioni CotW Italiano', timeout=20):
-    """Manda un messaggio nel canale Discord del webhook. Nessuna menzione (@everyone ecc.) viene attivata."""
-    corpo = json.dumps({'content': testo[:1990], 'username': nome, 'allowed_mentions': {'parse': []}}).encode('utf-8')
+def invia_postino(url, testo, timeout=25):
+    """Manda la segnalazione al 'postino' (Cloudflare Worker), che la gira nel canale Discord.
+    L'indirizzo del canale lo conosce solo il postino: nel programma non c'e'."""
+    corpo = json.dumps({'testo': testo[:1900]}).encode('utf-8')
     h = dict(_UA)
     h['Content-Type'] = 'application/json'
     try:
@@ -98,7 +99,7 @@ def invia_webhook(url, testo, nome='Segnalazioni CotW Italiano', timeout=20):
             return True
     except urllib.error.HTTPError as e:
         if e.code == 429:
-            raise RuntimeError('Troppe segnalazioni in poco tempo: riprova tra qualche minuto.')
-        raise RuntimeError('Discord ha rifiutato la segnalazione (errore %d).' % e.code)
+            raise RuntimeError('Troppe segnalazioni in poco tempo: riprova tra un po\'.')
+        raise RuntimeError('Il servizio delle segnalazioni ha risposto con un errore (%d).' % e.code)
     except urllib.error.URLError:
-        raise RuntimeError('Non riesco a collegarmi a Discord: controlla la connessione a internet.')
+        raise RuntimeError('Non riesco a collegarmi al servizio delle segnalazioni: controlla la connessione a internet.')

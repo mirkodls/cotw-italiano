@@ -3,7 +3,6 @@ import os
 import re
 import json
 import time
-import base64
 import unicodedata
 from . import aggiornamenti, rete, percorsi
 
@@ -120,21 +119,11 @@ LIMITE_ORA = 5          # segnalazioni massime per ora dallo stesso PC (contro l
 LIMITE_GIORNO = 20
 
 
-def _webhook():
-    """L'indirizzo del canale e' in online.json, leggermente mascherato (solo per non farlo trovare ai bot
-    che cercano webhook nei repository: chi legge il codice puo' ricavarlo comunque)."""
-    w = rete.leggi_online().get('segnalazioni')
-    if not w:
-        return None
-    try:
-        return base64.b64decode(w.encode('ascii')).decode('utf-8')[::-1]
-    except Exception:
-        return None
-
-
-def maschera(url):
-    """Per l'autore: trasforma l'URL del webhook nella forma da mettere in online.json."""
-    return base64.b64encode(url.strip()[::-1].encode('utf-8')).decode('ascii')
+def _postino():
+    """Indirizzo del postino (Cloudflare Worker) scritto in online.json del repository. Non e' un segreto:
+    il segreto (il webhook del canale) sta solo nelle impostazioni del Worker."""
+    u = rete.leggi_online().get('postino')
+    return u if isinstance(u, str) and u.startswith('https://') else None
 
 
 def _registro():
@@ -153,10 +142,10 @@ def invia(testo):
     fatte = _inviate()
     if len([t for t in fatte if t > time.time() - 3600]) >= LIMITE_ORA or len(fatte) >= LIMITE_GIORNO:
         raise RuntimeError('Hai gia\' mandato molte segnalazioni: grazie! Riprova piu\' tardi.')
-    url = _webhook()
+    url = _postino()
     if not url:
         raise RuntimeError('L\'invio diretto non e\' disponibile in questo momento.')
-    rete.invia_webhook(url, testo)
+    rete.invia_postino(url, testo)
     fatte.append(time.time())
     try:
         json.dump(fatte, open(_registro(), 'w', encoding='utf-8'))
