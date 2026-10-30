@@ -8,3 +8,5 @@ chiave_elevenlabs*.txt
 *.part
 postino_admin.txt
 webhook.txt
+dist/
+build/

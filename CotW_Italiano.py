@@ -17,6 +17,11 @@ def main():
     app.setApplicationName('CotW Italiano')
     app.setStyle('Fusion')
     app.setStyleSheet(stile.QSS)
+    from cotw.core import percorsi
+    import os
+    ico = os.path.join(percorsi.cartella_risorse(), 'icona.ico')
+    if os.path.isfile(ico):
+        app.setWindowIcon(QIcon(ico))
     w = Finestra()
     w.show()
     sys.exit(app.exec())
