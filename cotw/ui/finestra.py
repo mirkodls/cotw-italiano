@@ -248,6 +248,7 @@ class Finestra(QMainWindow):
             QTimer.singleShot(300, self._chiedi_gioco)
         QTimer.singleShot(800, self._controlla_online)          # controllo aggiornamenti all'avvio
         QTimer.singleShot(200, self._dentro_lo_zip)
+        QTimer.singleShot(400, self._steam_spostato)
         self._tutorial_attivo, self._popup_rimandati = False, False
         QTimer.singleShot(700, self._tutorial_avvio)
         self.t_coda = QTimer(self)                               # segnalazioni in coda: partono da sole
@@ -282,6 +283,22 @@ class Finestra(QMainWindow):
             else:
                 self._popup_contribuisci()
             self._proponi_controllo()
+
+    def _steam_spostato(self):
+        """Il programma e' stato installato/spostato: Steam apre ancora quello vecchio. Si propone di sistemarlo."""
+        exe = programma.cartella_exe()
+        if not exe:
+            return
+        try:
+            att = avvio.controllo_attivo(avvio.stato_steam()[1])
+        except Exception:
+            return
+        nuovo = os.path.join(exe, programma.NOME_EXE)
+        if att and os.path.normcase(att) != os.path.normcase(nuovo):
+            if QMessageBox.question(self, 'Avvio da Steam', 'Il programma adesso sta in una cartella nuova, ma Steam apre '
+                                    'ancora quello vecchio quando premi Gioca.\n\nSistemo io? (Steam deve essere chiuso)'
+                                    ) == QMessageBox.Yes:
+                self._controllo(True)
 
     def _dentro_lo_zip(self):
         """Aperto con doppio clic DENTRO lo zip: Windows lo mette in una cartella temporanea che sparisce."""
@@ -1643,26 +1660,8 @@ class Finestra(QMainWindow):
         if self.lavoro and self.lavoro.isRunning():
             self._messaggio('Attendi', 'C\'e\' gia\' un\'operazione in corso.', 'avviso')
             return
-        self._vai_a(0)
-        self.statusBar().showMessage('Scarico la versione %s del programma...' % nuova['versione'])
-        self.lavoro = Lavoro(lambda av: programma.prepara(nuova, av))
-
-        def fine(cartella):
-            try:
-                programma.installa_e_riavvia(cartella)
-            except Exception as e:
-                self._messaggio('Aggiornamento non riuscito', str(e), 'errore')
-                return
-            QApplication.instance().quit()
-
-        def err(e):
-            self.statusBar().showMessage('Errore: ' + e)
-            self._messaggio('Aggiornamento non riuscito', e + '\n\nRiprova piu\' tardi: il programma funziona come prima.',
-                            'errore')
-        self.lavoro.avanzamento.connect(lambda a, b, t: self.statusBar().showMessage('%s: %d di %d' % (t, a, b)))
-        self.lavoro.finito.connect(fine)
-        self.lavoro.errore.connect(err)
-        self.lavoro.start()
+        from .aggiorna_programma import aggiorna
+        aggiorna(self, nuova)
 
     def _aggiorna_impostazioni(self):
         self.imp['gioco'].setText(self.gioco or 'Non trovato')

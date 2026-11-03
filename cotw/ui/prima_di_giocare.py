@@ -82,20 +82,6 @@ class Aggiorna(QThread):
             self.fatto.emit(str(e))
 
 
-class PreparaProgramma(QThread):
-    fatto = Signal(str, str)
-
-    def __init__(self, info):
-        super().__init__()
-        self.info = info
-
-    def run(self):
-        try:
-            self.fatto.emit(programma.prepara(self.info), '')
-        except Exception as e:
-            self.fatto.emit('', str(e))
-
-
 class PrimaDiGiocare(QDialog):
     def __init__(self, comando):
         super().__init__()
@@ -208,26 +194,13 @@ class PrimaDiGiocare(QDialog):
         self.ag.start()
 
     def _aggiorna_programma(self):
-        for b in (self.b_agg, self.b_prog, self.b_gioca):
-            b.setEnabled(False)
-        self.barra.setMaximum(0)
-        self.barra.show()
-        self.testo.setText('Scarico la versione %s del programma...' % self.prog['versione'])
-        self.pp = PreparaProgramma(self.prog)
-
-        def fine(cartella, err):
-            if err:
-                QMessageBox.warning(self, 'Aggiornamento non riuscito', err + '\n\nIl gioco parte lo stesso.')
-                return self._gioca()
-            try:
-                programma.installa_e_riavvia(cartella, ['--gioco'] + list(self.comando))   # si riapre e avvia il gioco
-            except Exception as e:
-                QMessageBox.warning(self, 'Aggiornamento non riuscito', str(e))
-                return self._gioca()
-            self._partito = True
+        from .aggiorna_programma import aggiorna
+        self._partito = True                       # si riapre con --gioco e poi parte il gioco
+        if aggiorna(self, self.prog, ['--gioco'] + list(self.comando)):
             self.accept()
-        self.pp.fatto.connect(fine)
-        self.pp.start()
+            return
+        self._partito = False
+        self._gioca()
 
     def _contribuisci(self):
         """Apre il programma sulla scheda Contribuisci (il gioco si avvia dopo, quando vuole l'utente)."""

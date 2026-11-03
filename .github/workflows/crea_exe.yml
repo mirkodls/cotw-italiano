@@ -100,6 +100,10 @@ jobs:
           o['programma'] = {'versione': info['versione'], 'sha256': info['sha256'], 'dimensione': info['dimensione'],
                             'novita': novita,
                             'url': 'https://github.com/%s/releases/download/%s/%s' % (os.environ['GITHUB_REPOSITORY'], tag, info['zip'])}
+          if info.get('setup'):                       # dalla 0.5.3 il programma si aggiorna con l'installer
+              o['programma']['setup_url'] = 'https://github.com/%s/releases/download/%s/%s' % (
+                  os.environ['GITHUB_REPOSITORY'], tag, info['setup'])
+              o['programma']['setup_sha256'] = info['setup_sha256']
           json.dump(o, open('online.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
           import re
           r = open('README.md', encoding='utf-8').read()          # link di download sempre all'ultima versione

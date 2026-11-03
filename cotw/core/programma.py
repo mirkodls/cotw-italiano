@@ -31,6 +31,12 @@ def cartella_exe():
     return None
 
 
+def installato():
+    """True se il programma e' stato messo con l'installer (c'e' il disinstallatore accanto all'exe)."""
+    c = cartella_exe()
+    return bool(c and os.path.isfile(os.path.join(c, 'unins000.exe')))
+
+
 def disponibile(online):
     """Dati della versione nuova se e' piu' recente di questa, altrimenti None."""
     p = (online or {}).get('programma') or {}
@@ -40,10 +46,16 @@ def disponibile(online):
 
 
 def prepara(info, avanzamento=None, fermati=None):
-    """Scarica e controlla la versione nuova. Restituisce la cartella con i file nuovi (quella che contiene l'exe)."""
+    """Scarica e controlla la versione nuova. Con l'installer (Windows): restituisce il percorso del Setup .exe.
+    Altrimenti: la cartella con i file nuovi estratti dallo zip (quella che contiene l'exe)."""
     base = os.path.join(percorsi.dati_app(), 'aggiornamento')
     shutil.rmtree(base, ignore_errors=True)
     os.makedirs(base, exist_ok=True)
+    if info.get('setup_url') and sys.platform == 'win32':
+        sp = os.path.join(base, 'CotW_Italiano_Setup.exe')
+        rete.scarica(info['setup_url'], sp, info.get('setup_sha256'),
+                     (lambda a, b: avanzamento(a >> 20, max(b >> 20, 1), 'Scarico')) if avanzamento else None, fermati)
+        return sp
     zp = os.path.join(base, 'programma.zip')
     rete.scarica(info['url'], zp, info.get('sha256'),
                  (lambda a, b: avanzamento(a >> 20, max(b, info.get('dimensione', 0)) >> 20 or 1, 'Scarico (MB)'))
@@ -72,8 +84,20 @@ def installa_e_riavvia(nuova, argomenti=None):
              'if errorlevel 1 goto copia',
              'ping -n 2 127.0.0.1 >nul',
              'goto attendi',
-             ':copia',
-             'robocopy "%s" "%s" /E /R:10 /W:1 /NFL /NDL /NJH /NJS /NP >nul' % (nuova, app),
+             ':copia']
+    if nuova.lower().endswith('.exe') and not installato():
+        # veniva da uno zip estratto chissa' dove: installazione normale (scegli dove, icona sul desktop);
+        # alla fine l'installer stesso riapre il programma
+        righe.append('start "" "%s"' % nuova)
+        with open(script, 'w', encoding='utf-8') as f:
+            f.write('\r\n'.join(righe) + '\r\n')
+        subprocess.Popen(['cmd', '/c', script], creationflags=0x08000000 | 0x00000200, close_fds=True)
+        return
+    if nuova.lower().endswith('.exe'):              # gia' installato: stessa cartella, con la barra dell'installer
+        righe.append('start "" /wait "%s" /SILENT /SUPPRESSMSGBOXES /NORESTART /NOCANCEL /DIR="%s"' % (nuova, app))
+    else:
+        righe.append('robocopy "%s" "%s" /E /R:10 /W:1 /NFL /NDL /NJH /NJS /NP >nul' % (nuova, app))
+    righe += [
              'start "" "%s"%s' % (os.path.join(app, NOME_EXE), ''.join(' "%s"' % a.replace('%', '%%').replace('"', '')
                                                                         for a in (argomenti or [])))]
     with open(script, 'w', encoding='utf-8') as f:
