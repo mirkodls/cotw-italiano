@@ -142,6 +142,32 @@ def steam_in_esecuzione():
         return False
 
 
+def exe_steam():
+    s = cartella_steam()
+    p = os.path.join(s, 'steam.exe') if s else None
+    return p if p and os.path.isfile(p) else None
+
+
+def chiudi_steam():
+    """Chiede a Steam di chiudersi da solo (come Esci dal menu). Non aspetta: si controlla con steam_in_esecuzione()."""
+    e = exe_steam()
+    if e:
+        subprocess.Popen([e, '-shutdown'], creationflags=0x08000000, close_fds=True)
+    else:
+        os.startfile('steam://exit')
+
+
+def apri_steam():
+    e = exe_steam()
+    try:
+        if e:
+            subprocess.Popen([e], creationflags=0x00000008 | 0x00000200, close_fds=True)
+        else:
+            os.startfile('steam://open/main')
+    except Exception:
+        pass
+
+
 def _leggi_file(f):
     return vdf_leggi(open(f, encoding='utf-8', errors='replace').read())
 

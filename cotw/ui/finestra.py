@@ -296,7 +296,7 @@ class Finestra(QMainWindow):
         nuovo = os.path.join(exe, programma.NOME_EXE)
         if att and os.path.normcase(att) != os.path.normcase(nuovo):
             if QMessageBox.question(self, 'Avvio da Steam', 'Il programma adesso sta in una cartella nuova, ma Steam apre '
-                                    'ancora quello vecchio quando premi Gioca.\n\nSistemo io? (Steam deve essere chiuso)'
+                                    'ancora quello vecchio quando premi Gioca.\n\nSistemo io?'
                                     ) == QMessageBox.Yes:
                 self._controllo(True)
 
@@ -800,7 +800,7 @@ class Finestra(QMainWindow):
         l.addWidget(etichetta('Quando premi Gioca su Steam (o l\'icona sul desktop) si apre per un attimo CotW Italiano: '
                               'se c\'e\' un aggiornamento della traduzione o del programma te lo chiede, poi avvia il '
                               'gioco. Cosi\' la traduzione resta sempre aggiornata senza aprire il programma. '
-                              'Senza internet il gioco parte subito. Steam deve essere chiuso per attivarlo.', 'tenue'))
+                              'Senza internet il gioco parte subito. Se Steam e\' aperto, lo chiudo e lo riapro io.', 'tenue'))
         self.a_ctrl_info = etichetta('', 'avviso')
         self.a_ctrl_info.hide()
         l.addWidget(self.a_ctrl_info)
@@ -825,7 +825,7 @@ class Finestra(QMainWindow):
         l.addWidget(etichetta('Il programma scrive le opzioni di avvio direttamente in Steam. Steam deve essere CHIUSO del tutto '
                               '(anche dall\'icona vicino all\'orologio), altrimenti quando si chiude le cancella. '
                               'Fa sempre un backup della configurazione di Steam.', 'tenue'))
-        self.a_steam_aperto = etichetta('Steam e\' aperto: chiudilo del tutto, poi premi "Imposta".', 'avviso')
+        self.a_steam_aperto = etichetta('Steam e\' aperto: premendo "Imposta" lo chiudo e lo riapro io.', 'tenue')
         self.a_steam_aperto.hide()
         l.addWidget(self.a_steam_aperto)
         r = QHBoxLayout()
@@ -900,8 +900,42 @@ class Finestra(QMainWindow):
             self.a_ctrl_info.setVisible(spostato)
         return st
 
+    def _steam_chiuso(self):
+        """None = l'utente non vuole | False = Steam era gia' chiuso | True = chiuso da noi (poi va riaperto)."""
+        if not avvio.steam_in_esecuzione():
+            return False
+        if QMessageBox.question(self, 'Steam e\' aperto', 'Per scrivere le opzioni di avvio Steam deve essere chiuso.\n\n'
+                                'Lo chiudo io e poi lo riapro? (Se sta scaricando qualcosa, il download riprende dopo.)'
+                                ) != QMessageBox.Yes:
+            return None
+        import time
+        from PySide6.QtWidgets import QProgressDialog
+        d = QProgressDialog('Chiudo Steam...', None, 0, 0, self)
+        d.setWindowTitle('Steam')
+        d.setMinimumDuration(0)
+        d.setWindowModality(Qt.WindowModal)
+        d.show()
+        avvio.chiudi_steam()
+        fine = time.time() + 60
+        while time.time() < fine:
+            for _ in range(10):
+                QApplication.processEvents()
+                time.sleep(0.1)
+            if not avvio.steam_in_esecuzione():
+                break
+        d.close()
+        if avvio.steam_in_esecuzione():
+            self._messaggio('Steam non si chiude', 'Steam non si e\' chiuso da solo. Chiudilo tu: tasto destro sull\'icona '
+                            'di Steam vicino all\'orologio -> Esci. Poi riprova.', 'avviso')
+            return None
+        time.sleep(1.5)                                   # Steam scrive le sue impostazioni appena si chiude
+        return True
+
     def _steam(self, togli):
         if not self._pronto(serve_gioco=False):
+            return
+        chiuso = self._steam_chiuso()
+        if chiuso is None:
             return
         try:
             exe = programma.cartella_exe()
@@ -911,12 +945,17 @@ class Finestra(QMainWindow):
                                       'Opzioni di avvio impostate in Steam (%d account). Ora puoi aprire Steam e giocare.' % n))
         except Exception as e:
             self._messaggio('Non riesco', str(e), 'avviso')
+        if chiuso:
+            avvio.apri_steam()
         self.aggiorna_tutto()
 
     def _controllo(self, attiva):
         if not self._pronto(serve_gioco=False):
             return
         exe = programma.cartella_exe()
+        chiuso = self._steam_chiuso()
+        if chiuso is None:
+            return
         try:
             if attiva:
                 n = avvio.imposta_steam(controllo_exe=os.path.join(exe, programma.NOME_EXE))
@@ -929,6 +968,8 @@ class Finestra(QMainWindow):
                 self._messaggio('Fatto', 'Controllo prima di giocare spento: il gioco parte direttamente con le mod.')
         except Exception as e:
             self._messaggio('Non riesco', str(e), 'avviso')
+        if chiuso:
+            avvio.apri_steam()
         self.aggiorna_tutto()
 
     def _collegamento(self):
@@ -1629,14 +1670,9 @@ class Finestra(QMainWindow):
         if QMessageBox.question(self, 'Traduzione sempre aggiornata',
                                 'Vuoi che CotW Italiano controlli gli aggiornamenti ogni volta che premi Gioca?\n\n'
                                 'Si apre per un attimo, ti chiede se aggiornare (solo se serve) e avvia il gioco. '
-                                'Senza internet il gioco parte subito.\n\nPer attivarlo Steam deve essere chiuso: '
-                                'puoi farlo anche dopo da "Avvio gioco".') == QMessageBox.Yes:
+                                'Senza internet il gioco parte subito.') == QMessageBox.Yes:
             self._vai_a(2)
-            if avvio.steam_in_esecuzione():
-                self._messaggio('Chiudi Steam', 'Chiudi Steam del tutto (anche dall\'icona vicino all\'orologio), poi '
-                                                'premi "Attiva" in "Controllo prima di giocare".', 'avviso')
-            else:
-                self._controllo(True)
+            self._controllo(True)
 
     def _popup_programma(self):
         nuova = programma.disponibile(self.c_online)
