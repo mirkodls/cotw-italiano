@@ -1,5 +1,5 @@
 """Segnalare mentre giochi: una scorciatoia (di base Ctrl+Alt+S, si cambia in Impostazioni) apre la finestrella
-"Segnala errore" sopra il gioco. Valida in tutto Windows (RegisterHotKey), anche col gioco in primo piano."""
+"Segnala errore" sopra il gioco. Valida in tutto Windows (hook di tastiera di basso livello), anche col gioco in primo piano."""
 import os
 import sys
 import threading
@@ -8,8 +8,7 @@ from . import percorsi
 
 PREDEFINITA = 'Ctrl+Alt+S'
 _MOD = {'alt': 0x0001, 'ctrl': 0x0002, 'shift': 0x0004}
-_MOD_NOREPEAT = 0x4000
-_WM_HOTKEY, _WM_QUIT = 0x0312, 0x0012
+_WM_QUIT = 0x0012
 
 
 def attiva():
@@ -55,13 +54,16 @@ def valida(testo):
 
 
 class Tasto:
-    """Tasto(testo, callback).avvia() -> True se Windows ha dato la scorciatoia (False: la usa gia' un altro
-    programma). La callback viene chiamata dal thread del tasto: in Qt passala con un Signal."""
+    """Tasto(testo, callback).avvia() -> True se la scorciatoia e' attiva.
+    Usa un "hook" di tastiera di basso livello (WH_KEYBOARD_LL, come l'overlay di Discord): vede i tasti PRIMA del
+    gioco. RegisterHotKey non basta: il gioco, finito il caricamento, blocca le scorciatoie di Windows.
+    La callback viene chiamata dal thread del tasto: in Qt passala con un Signal."""
 
     def __init__(self, testo, callback):
         self.testo, self.callback = testo, callback
         self._tid, self._ok = None, None
         self._pronto = threading.Event()
+        self._proc = None
 
     def avvia(self):
         if sys.platform != 'win32' or not scomponi(self.testo):
@@ -76,20 +78,54 @@ class Tasto:
         u32, k32 = ctypes.windll.user32, ctypes.windll.kernel32
         self._tid = k32.GetCurrentThreadId()
         mod, vk = scomponi(self.testo)
-        self._ok = bool(u32.RegisterHotKey(None, 1, mod | _MOD_NOREPEAT, vk))
+        vuole = {'ctrl': bool(mod & _MOD['ctrl']), 'alt': bool(mod & _MOD['alt']), 'shift': bool(mod & _MOD['shift'])}
+
+        class KBD(ctypes.Structure):
+            _fields_ = [('vkCode', wintypes.DWORD), ('scanCode', wintypes.DWORD), ('flags', wintypes.DWORD),
+                        ('time', wintypes.DWORD), ('dwExtraInfo', ctypes.c_size_t)]
+        LRESULT = ctypes.c_ssize_t
+        HOOKPROC = ctypes.WINFUNCTYPE(LRESULT, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM)
+        u32.CallNextHookEx.argtypes = [wintypes.HHOOK, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM]
+        u32.CallNextHookEx.restype = LRESULT
+        u32.SetWindowsHookExW.argtypes = [ctypes.c_int, HOOKPROC, wintypes.HINSTANCE, wintypes.DWORD]
+        u32.SetWindowsHookExW.restype = wintypes.HHOOK
+        u32.GetAsyncKeyState.restype = ctypes.c_short
+        k32.GetModuleHandleW.restype = wintypes.HMODULE
+        giu = lambda v: bool(u32.GetAsyncKeyState(v) & 0x8000)
+        stato = {'premuto': False}
+
+        def proc(n, wparam, lparam):
+            try:
+                if n == 0:
+                    k = ctypes.cast(lparam, ctypes.POINTER(KBD)).contents
+                    if k.vkCode == vk:
+                        if wparam in (0x0100, 0x0104):          # WM_KEYDOWN / WM_SYSKEYDOWN
+                            if (giu(0x11) == vuole['ctrl'] and giu(0x12) == vuole['alt']
+                                    and giu(0x10) == vuole['shift']):
+                                if not stato['premuto']:         # tenuto premuto: una volta sola
+                                    stato['premuto'] = True
+                                    threading.Thread(target=self.callback, daemon=True).start()
+                                return 1                         # il gioco non riceve il tasto
+                        elif stato['premuto']:                   # rilasciato
+                            stato['premuto'] = False
+                            return 1
+            except Exception:
+                pass
+            return u32.CallNextHookEx(None, n, wparam, lparam)
+
+        self._proc = HOOKPROC(proc)                              # va tenuto vivo
+        hook = u32.SetWindowsHookExW(13, self._proc, k32.GetModuleHandleW(None), 0)    # WH_KEYBOARD_LL
+        self._ok = bool(hook)
         self._pronto.set()
-        if not self._ok:
+        if not hook:
             return
         msg = wintypes.MSG()
         try:
             while u32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
-                if msg.message == _WM_HOTKEY:
-                    try:
-                        self.callback()
-                    except Exception:
-                        pass
+                u32.TranslateMessage(ctypes.byref(msg))
+                u32.DispatchMessageW(ctypes.byref(msg))
         finally:
-            u32.UnregisterHotKey(None, 1)
+            u32.UnhookWindowsHookEx(hook)
 
     def ferma(self):
         if self._tid and sys.platform == 'win32':
@@ -98,13 +134,8 @@ class Tasto:
 
 
 def libera(testo):
-    """True se la scorciatoia si puo' usare (nessun altro programma la tiene). Fuori da Windows: True."""
-    if sys.platform != 'win32':
-        return True
-    t = Tasto(testo, lambda: None)
-    ok = t.avvia()
-    t.ferma()
-    return ok
+    """Con l'hook di basso livello la scorciatoia funziona anche se un altro programma la usa: sempre True."""
+    return True
 
 
 # ---------------- finestra in primo piano (Windows e' severo con chi "ruba" il primo piano) ----------------

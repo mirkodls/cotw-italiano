@@ -1,5 +1,6 @@
 """Finestra dell'aggiornamento del programma: barra con i MB scaricati, poi l'installer (con la sua barra) e il
 programma si riapre da solo. Cosi' non sembra mai bloccato."""
+import os
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar, QApplication, QMessageBox
 from ..core import programma
@@ -77,11 +78,23 @@ class Aggiornamento(QDialog):
             QMessageBox.warning(self, 'Aggiornamento non riuscito', str(e))
             return self.reject()
         self.ok = True
-        QTimer.singleShot(4000, QApplication.instance().quit)
+        QTimer.singleShot(3000, _chiudi_programma)
 
     def keyPressEvent(self, e):          # Esc non lo chiude a meta'
         if e.key() != Qt.Key_Escape:
             super().keyPressEvent(e)
+
+
+def _chiudi_programma():
+    """Chiude DAVVERO il programma, anche dal controllo prima di giocare (li' non c'e' app.exec() e quit() da solo
+    non fa niente: lo script dell'aggiornamento aspettava per sempre). Se qualcosa resta aperto, si esce lo stesso."""
+    app = QApplication.instance()
+    for w in app.topLevelWidgets():
+        if isinstance(w, QDialog) and w.isVisible():
+            w.done(0)
+    app.closeAllWindows()
+    app.quit()
+    QTimer.singleShot(2000, lambda: os._exit(0))
 
 
 def aggiorna(padre, info, argomenti=None):
