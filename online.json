@@ -1,18 +1,15 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.5",
-  "sha256": "30d4a5c02d1edf90d29f2a1a71726147ba8354b1c7f6733a51e6da5f0c30468b",
-  "dimensione": 32210615,
+  "versione": "0.5.6",
+  "sha256": "a6a248de65cb4810dd1bb324b15d837696c87e488adfbe08488eb558f456f53f",
+  "dimensione": 32219174,
   "novita": [
-   "Mentre giochi premi Ctrl+Alt+S: la finestra Segnala errore si apre sopra il gioco (scorciatoia modificabile in Impostazioni)",
-   "Avviso con la scorciatoia quando parte il gioco",
-   "Nuovo tasto Ringraziamenti: chi segnala errori e chi doppia le battute",
-   "All'avvio un avviso con tutto quello che va sistemato",
-   "Gioca chiede di contribuire quando ci sono battute da doppiare"
+   "Corretto: l'aggiornamento partito da Gioca restava fermo e il programma non si chiudeva",
+   "Corretto: Ctrl+Alt+S non funzionava durante la partita"
   ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.5/CotW_Italiano_0.5.5.zip",
-  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.5/CotW_Italiano_Setup_0.5.5.exe",
-  "setup_sha256": "b6c95eeb7d51871b4577a310833319bd3516120fb0a7b46e6f764ec65f157726"
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.6/CotW_Italiano_0.5.6.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.6/CotW_Italiano_Setup_0.5.6.exe",
+  "setup_sha256": "f890053c6a338c73d07211cdaa14010e9e6d97e1e818da801cc50c07d97bb465"
  }
 }
