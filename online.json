@@ -1,16 +1,15 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.3",
-  "sha256": "901eea998b3480c78cdd45727850d04a507644c14418cbcf2dad2c39850cdaff",
-  "dimensione": 32129483,
+  "versione": "0.5.4",
+  "sha256": "82a712be293503a4f8c41143bb47fb1a928be464e32084278e52afebdc307104",
+  "dimensione": 32141107,
   "novita": [
-   "Aggiornamento del programma con barra di avanzamento, poi si installa per bene (cartella Programmi e icona sul desktop) e si riapre da solo",
-   "Il gioco parte piu' veloce con il controllo prima di giocare",
-   "Se il programma cambia cartella, sistema da solo l'avvio di Steam"
+   "Installazione automatica: chi aveva il programma estratto dallo zip ora lo installa per bene (cartella Programmi e icona sul desktop) e la cartella vecchia si cancella da sola",
+   "Se Steam e' aperto il programma lo chiude e lo riapre da solo per impostare l'avvio"
   ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.3/CotW_Italiano_0.5.3.zip",
-  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.3/CotW_Italiano_Setup_0.5.3.exe",
-  "setup_sha256": "51fa3aee59020a355d0235cab178f0a8ce67542d90de779a9580033b470fd31d"
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.4/CotW_Italiano_0.5.4.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.4/CotW_Italiano_Setup_0.5.4.exe",
+  "setup_sha256": "8fe85aee2786d223aeefec45e8a1eda541fc80410f9e4a75e79de87ecf5abf7c"
  }
 }
