@@ -7,7 +7,9 @@
 //   WEBHOOK            segreto: webhook del canale Discord delle segnalazioni
 //   WEBHOOK_CONTRIBUTI segreto (facoltativo): webhook del canale dove annunciare i contributi (altrimenti WEBHOOK)
 //   ADMIN              segreto: password dell'autore per scaricare i contributi e leggere le segnalazioni
-//   DEPOSITO           binding KV namespace: il deposito degli audio
+//   DEPOSITO           binding KV namespace: il deposito degli audio (e delle segnalazioni)
+//   BOT_DISCORD        segreto (facoltativo): token del bot che legge i messaggi scritti a mano nel canale
+//   CANALE             variabile (facoltativa): id del canale Discord delle segnalazioni
 const REPO = 'mirkodls/cotw-italiano';
 const LIMITE_ORA_PER_PC = 40;      // segnalazioni all'ora dalla stessa connessione (solo contro lo spam)
 const LIMITE_ORA_TOTALE = 300;     // tetto generale all'ora (contro lo spam)
@@ -193,6 +195,21 @@ async function admin(req, env, url) {
     const out = await ricevutiDaLista(env);
     await env.DEPOSITO.put('ricevuti', JSON.stringify(out));
     return risposta({ ok: true, n: Object.keys(out).length });
+  }
+  // ---- messaggi scritti a mano nel canale Discord (bot: segreto BOT_DISCORD) ----
+  if (parte === 'discord' && req.method === 'GET') {
+    if (!env.BOT_DISCORD) return risposta({ errore: 'manca il segreto BOT_DISCORD' }, 503);
+    const canale = url.searchParams.get('canale') || env.CANALE || '';
+    if (!/^[0-9]{5,25}$/.test(canale)) return risposta({ errore: 'canale' }, 400);
+    const dopo = url.searchParams.get('dopo') || '';
+    let q = 'https://discord.com/api/v10/channels/' + canale + '/messages?limit=100';
+    if (/^[0-9]{5,25}$/.test(dopo)) q += '&after=' + dopo;
+    const r = await fetch(q, { headers: { Authorization: 'Bot ' + env.BOT_DISCORD, 'User-Agent': 'CotW-Italiano-postino' } });
+    if (!r.ok) return risposta({ errore: 'discord', codice: r.status, dettaglio: (await r.text()).slice(0, 200) }, 502);
+    const l = await r.json();
+    return risposta({ messaggi: l.map(m => ({ id: m.id, t: Date.parse(m.timestamp), autore: (m.author || {}).username,
+      bot: !!(m.webhook_id || (m.author || {}).bot), testo: m.content || '',
+      allegati: (m.attachments || []).map(x => x.url) })).sort((x, y) => x.t - y.t) });
   }
   // ---- segnalazioni (per l'app sviluppatore) ----
   if (parte === 'segnalazioni' && req.method === 'GET') {
