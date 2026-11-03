@@ -699,6 +699,13 @@ class Finestra(QMainWindow):
 
         def fatto(m):
             self.manifest, self.errore_online, self.controllato = m, None, True
+            try:                                   # appena controllato e niente da aggiornare: Gioca parte subito
+                da_agg = self.dz() and any(v[2] == 'aggiornare' for v in aggiornamenti.confronta(m, self.dz()).values())
+                if m and not da_agg and not programma.disponibile(th.online):
+                    from .prima_di_giocare import segna_controllo
+                    segna_controllo()
+            except Exception:
+                pass
             self.c_doc, self.c_stato, self.c_online = th.doc, th.stato, th.online
             self.aggiorna_tutto()
             if self._tutorial_attivo:

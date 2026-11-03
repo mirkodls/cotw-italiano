@@ -13,14 +13,15 @@ from .finestra import etichetta, bottone
 from .. import VERSIONE
 
 APP_ID = '518790'
-ATTESA_MAX = 8000          # millisecondi: oltre, si gioca senza aspettare
+ATTESA_MAX = 4000          # millisecondi: oltre, si gioca senza aspettare
+RECENTE = 30 * 60          # controllato da meno di 30 minuti (anche dal programma): il gioco parte subito
 
 
 def _file_ultimo():
     return os.path.join(percorsi.dati_app(), 'ultimo_controllo_gioco.txt')
 
 
-def controllo_recente(secondi=180):
+def controllo_recente(secondi=RECENTE):
     """Gia' controllato da poco (es. il collegamento passa da Steam, che riapre il controllo): si salta."""
     try:
         return time.time() - float(open(_file_ultimo()).read().strip()) < secondi
@@ -50,17 +51,19 @@ class Controllo(QThread):
     stato = None
 
     def run(self):
-        m = o = None
-        try:
-            m = rete.leggi_manifest(timeout=6)
-        except Exception:
-            pass
-        try:
-            o = rete.leggi_online(timeout=5)
-        except Exception:
-            pass
-        if (m or {}).get('da_doppiare'):
-            self.stato = contribuisci.stato(timeout=4)
+        from concurrent.futures import ThreadPoolExecutor      # tutto insieme, non uno dopo l'altro
+
+        def prova(f, *a, **k):
+            try:
+                return f(*a, **k)
+            except Exception:
+                return None
+        with ThreadPoolExecutor(3) as ex:
+            fm = ex.submit(prova, rete.leggi_manifest, timeout=3)
+            fo = ex.submit(prova, rete.leggi_online, timeout=3)
+            fs = ex.submit(prova, contribuisci.stato, timeout=3)
+            m, o = fm.result(), fo.result()
+            self.stato = fs.result() if (m or {}).get('da_doppiare') else None
         self.fatto.emit(m, o)
 
 
