@@ -1,16 +1,16 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.2",
-  "sha256": "d54394eb9c700ae238701fd7f3dff2c6b7486bf319741b58a3b4786997262ba1",
-  "dimensione": 31731246,
+  "versione": "0.5.3",
+  "sha256": "901eea998b3480c78cdd45727850d04a507644c14418cbcf2dad2c39850cdaff",
+  "dimensione": 32129483,
   "novita": [
-   "Installer: si installa da solo con l'icona sul desktop",
-   "Tutorial al primo avvio",
-   "Segnala errore: Audio/Testo/Entrambi, suggerimento cliccabile, niente limiti (le segnalazioni partono da sole)",
-   "Contribuisci: stato aggiornato subito e niente popup inutili",
-   "Volume del quad: la barra parte dal volume attuale"
+   "Aggiornamento del programma con barra di avanzamento, poi si installa per bene (cartella Programmi e icona sul desktop) e si riapre da solo",
+   "Il gioco parte piu' veloce con il controllo prima di giocare",
+   "Se il programma cambia cartella, sistema da solo l'avvio di Steam"
   ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.2/CotW_Italiano_0.5.2.zip"
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.3/CotW_Italiano_0.5.3.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.3/CotW_Italiano_Setup_0.5.3.exe",
+  "setup_sha256": "51fa3aee59020a355d0235cab178f0a8ce67542d90de779a9580033b470fd31d"
  }
 }
