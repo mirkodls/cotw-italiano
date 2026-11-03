@@ -6,6 +6,22 @@ from cotw.ui.finestra import Finestra
 from cotw.ui import stile
 
 
+def disinstalla():
+    from cotw.core import avvio
+    from PySide6.QtWidgets import QMessageBox
+    try:
+        if not avvio.controllo_attivo(avvio.stato_steam()[1]):
+            return 0
+        _app = QApplication(sys.argv)  # noqa: F841 (serve per il messaggio)
+        avvio.imposta_steam(togli_controllo=True)
+    except Exception as e:
+        if 'Steam e\' aperto' in str(e):
+            QMessageBox.information(None, 'CotW Italiano', 'Steam e\' aperto, quindi non posso togliere il controllo '
+                                    'prima di giocare dalle opzioni di avvio.\n\nIn Steam: tasto destro sul gioco -> '
+                                    'Proprieta\' -> Opzioni di avvio, e cancella la parte  "...CotW Italiano.exe" --gioco')
+    return 0
+
+
 def main():
     # avviato senza console (pythonw): gli errori finiscono in un file, cosi' si possono mandare a Claude
     if sys.stderr is None or sys.stdout is None:
@@ -13,6 +29,8 @@ def main():
         import os
         log = open(os.path.join(percorsi.dati_app(), 'errori.log'), 'a', encoding='utf-8', buffering=1)
         sys.stderr = sys.stdout = log
+    if '--disinstalla' in sys.argv:            # dall'installer: toglie il controllo prima di giocare da Steam
+        sys.exit(disinstalla())
     app = QApplication(sys.argv)
     if '--gioco' in sys.argv:                  # premuto Gioca (Steam o collegamento): controllo veloce e via
         app.setApplicationName('CotW Italiano')

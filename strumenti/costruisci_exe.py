@@ -70,6 +70,28 @@ def con_pyinstaller(ver, build):
     return os.path.join(build, 'out', NOME)
 
 
+def trova_iscc():
+    for p in (shutil.which('iscc'), r'C:\Program Files (x86)\Inno Setup 6\ISCC.exe', r'C:\Program Files\Inno Setup 6\ISCC.exe',
+              os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Programs', 'Inno Setup 6', 'ISCC.exe')):
+        if p and os.path.isfile(p):
+            return p
+    return None
+
+
+def installer(ver, finale, dist):
+    """Installer (Inno Setup): CotW_Italiano_Setup_<ver>.exe. None se Inno Setup non c'e'."""
+    iscc = trova_iscc()
+    if not iscc:
+        print('(Inno Setup non trovato: niente installer)')
+        return None
+    esegui([iscc, '/Qp', '/DVERSIONE=' + ver, '/DSORGENTE=' + finale, '/DUSCITA=' + dist,
+            os.path.join(RADICE, 'strumenti', 'installer.iss')])
+    p = os.path.join(dist, 'CotW_Italiano_Setup_%s.exe' % ver)
+    if not os.path.isfile(p):
+        sys.exit('ERRORE: installer non creato')
+    return p
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--metodo', choices=['nuitka', 'pyinstaller'], default='nuitka')
@@ -96,6 +118,14 @@ def main():
                 z.write(p, os.path.join(NOME, os.path.relpath(p, finale)))
     sha = hashlib.sha256(open(zp, 'rb').read()).hexdigest()
     info = {'versione': ver, 'zip': os.path.basename(zp), 'sha256': sha, 'dimensione': os.path.getsize(zp)}
+    setup = installer(ver, finale, dist)
+    if setup:
+        info['setup'] = os.path.basename(setup)
+        info['setup_sha256'] = hashlib.sha256(open(setup, 'rb').read()).hexdigest()
+        zs = setup[:-4] + '.zip'                 # per Nexus (vuole uno zip): dentro c'e' solo l'installer
+        with zipfile.ZipFile(zs, 'w', zipfile.ZIP_DEFLATED) as z:
+            z.write(setup, os.path.basename(setup))
+        info['setup_zip'] = os.path.basename(zs)
     json.dump(info, open(os.path.join(dist, 'programma.json'), 'w'))
     print('\nFATTO: %s (%.0f MB)\nsha256 %s' % (zp, info['dimensione'] / 1e6, sha))
 

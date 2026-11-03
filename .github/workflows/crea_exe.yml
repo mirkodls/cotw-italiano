@@ -40,6 +40,11 @@ jobs:
       - name: Componenti
         run: python -m pip install --disable-pip-version-check PySide6==6.10.1 nuitka ordered-set zstandard
 
+      - name: Inno Setup (per l'installer)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+
       - name: Crea l'exe (Nuitka)
         id: nuitka
         continue-on-error: true
@@ -60,7 +65,7 @@ jobs:
           import json, os
           i = json.load(open('dist/programma.json'))
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write('versione=%s\nzip=dist/%s\n' % (i['versione'], i['zip']))
+              f.write('versione=%s\nzip=dist/%s\nnexus=dist/%s\n' % (i['versione'], i['zip'], i.get('setup_zip') or i['zip']))
 
       - name: Salva il risultato (scaricabile dalla pagina di questa esecuzione)
         uses: actions/upload-artifact@v4
@@ -68,6 +73,7 @@ jobs:
           name: CotW_Italiano
           path: |
             dist/*.zip
+            dist/*.exe
             dist/programma.json
 
       - name: Pubblica (Release + online.json)
@@ -84,7 +90,11 @@ jobs:
           novita = [x.strip() for x in os.environ.get('NOVITA', '').split(';') if x.strip()]
           note = 'Programma CotW Italiano %s\n\n' % info['versione'] + '\n'.join('- ' + x for x in novita)
           note += '\n\nSHA-256: ' + info['sha256']
-          subprocess.run(['gh', 'release', 'create', tag, zp, '--title', 'Programma CotW Italiano ' + info['versione'],
+          if info.get('setup'):
+              note = ('**Per installare:** scarica `%s` e aprilo (si installa da solo, con l\'icona sul desktop).\n\n' % info['setup']) + note
+              note += '\nSHA-256 installer: ' + info['setup_sha256']
+          allegati = [zp] + ([os.path.join('dist', info['setup'])] if info.get('setup') else [])
+          subprocess.run(['gh', 'release', 'create', tag] + allegati + ['--title', 'Programma CotW Italiano ' + info['versione'],
                           '--notes', note, '--latest=false'], check=True)
           o = json.load(open('online.json', encoding='utf-8'))
           o['programma'] = {'versione': info['versione'], 'sha256': info['sha256'], 'dimensione': info['dimensione'],
@@ -95,6 +105,16 @@ jobs:
           r = open('README.md', encoding='utf-8').read()          # link di download sempre all'ultima versione
           r = re.sub(r'releases/tag/programma-v[0-9.]+', 'releases/tag/' + tag, r)
           r = re.sub(r'CotW_Italiano_[0-9.]+[0-9]\.zip', info['zip'], r)
+          if info.get('setup') and '<!--scarica-->' in r:
+              blocco = ('<!--scarica-->\n**[Scarica l\'installer](https://github.com/%s/releases/download/%s/%s)** '
+                        '(`%s`)\n\n1. Apri il file scaricato: si installa da solo e mette l\'icona **CotW Italiano** '
+                        'sul desktop (non chiede permessi da amministratore).\n2. Vai su **Installa** -> **Scarica e '
+                        'installa**: il programma scarica testo e doppiaggio e li mette nel gioco.\n\n'
+                        '_Preferisci senza installer? Nella [pagina della versione](https://github.com/%s/releases/tag/%s) '
+                        'c\'e\' anche `%s`: estrai TUTTO lo zip in una cartella e apri `CotW Italiano.exe`._\n'
+                        '<!--/scarica-->') % (os.environ['GITHUB_REPOSITORY'], tag, info['setup'], info['setup'],
+                                              os.environ['GITHUB_REPOSITORY'], tag, info['zip'])
+              r = re.sub(r'<!--scarica-->.*?<!--/scarica-->', lambda _m: blocco, r, flags=re.S)
           open('README.md', 'w', encoding='utf-8').write(r)
           for c in (['git', 'config', 'user.name', 'github-actions[bot]'],
                     ['git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'],
@@ -109,9 +129,10 @@ jobs:
         with:
           api_key: ${{ secrets.NEXUSMODS_API_KEY }}
           file_id: ${{ env.NEXUS_FILE_ID }}
-          filename: ${{ steps.info.outputs.zip }}
+          filename: ${{ steps.info.outputs.nexus }}
           version: ${{ steps.info.outputs.versione }}
           display_name: CotW Italiano - programma ${{ steps.info.outputs.versione }}
           description: "Programma per installare e aggiornare traduzione e doppiaggio italiani. Codice sorgente: https://github.com/mirkodls/cotw-italiano"
           category: main
-          archive_existing_version: true
+          # ogni versione e' un file NUOVO: le vecchie restano scaricabili (se Nexus blocca la nuova, la vecchia c'e')
+          archive_existing_version: false

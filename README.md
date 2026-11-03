@@ -5,11 +5,13 @@ Di **Mirko Del Sette**.
 
 ## ⬇️ Scarica
 
+<!--scarica-->
 **[Scarica l'ultima versione del programma](https://github.com/mirkodls/cotw-italiano/releases/tag/programma-v0.5.1)** → in fondo alla pagina, sotto *Assets*, scarica `CotW_Italiano_0.5.1.zip`.
 
 1. Estrai lo zip dove vuoi (per esempio sul Desktop).
 2. Apri **`CotW Italiano.exe`**.
 3. Vai su **Installa** → **Scarica e installa**: il programma scarica testo e doppiaggio e li mette nel gioco.
+<!--/scarica-->
 
 Non serve installare altro. Il programma **si aggiorna da solo**: quando esce una versione nuova te lo dice e fa tutto lui.
 

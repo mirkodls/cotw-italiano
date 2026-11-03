@@ -246,10 +246,21 @@ class Finestra(QMainWindow):
         if not self.gioco:
             QTimer.singleShot(300, self._chiedi_gioco)
         QTimer.singleShot(800, self._controlla_online)          # controllo aggiornamenti all'avvio
+        QTimer.singleShot(200, self._dentro_lo_zip)
         self.t_coda = QTimer(self)                               # segnalazioni in coda: partono da sole
         self.t_coda.timeout.connect(self._coda)
         self.t_coda.start(5 * 60 * 1000)
         QTimer.singleShot(4000, self._coda)
+
+    def _dentro_lo_zip(self):
+        """Aperto con doppio clic DENTRO lo zip: Windows lo mette in una cartella temporanea che sparisce."""
+        c = (programma.cartella_exe() or '').lower()
+        if '\\temp\\' in c and ('temp1_' in c or '.zip' in c or 'rar$' in c or '7z' in c):
+            self._messaggio('Prima estrai lo zip', 'Hai aperto il programma direttamente da dentro lo zip: cosi\' '
+                            'Windows lo mette in una cartella temporanea e non funziona bene (le impostazioni e gli '
+                            'aggiornamenti si perdono).\n\nChiudi, poi tasto destro sullo zip -> "Estrai tutto", e apri '
+                            '"CotW Italiano.exe" dalla cartella estratta.\nOppure scarica l\'installer dalla pagina del '
+                            'programma: fa tutto da solo.', 'avviso')
 
     def _coda(self):
         if getattr(self, '_th_coda', None) and self._th_coda.isRunning():
