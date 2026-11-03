@@ -88,6 +88,10 @@ def leggi_online(timeout=15):
         return {}
 
 
+class Occupato(RuntimeError):
+    """Il postino ha ricevuto troppe segnalazioni in poco tempo: si riprova piu' tardi da soli."""
+
+
 def invia_postino(url, testo, timeout=25):
     """Manda la segnalazione al 'postino' (Cloudflare Worker), che la gira nel canale Discord.
     L'indirizzo del canale lo conosce solo il postino: nel programma non c'e'."""
@@ -95,11 +99,19 @@ def invia_postino(url, testo, timeout=25):
     h = dict(_UA)
     h['Content-Type'] = 'application/json'
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, data=corpo, headers=h, method='POST'), timeout=timeout):
-            return True
+        with urllib.request.urlopen(urllib.request.Request(url, data=corpo, headers=h, method='POST'), timeout=timeout) as r:
+            try:
+                return json.loads(r.read().decode('utf-8') or '{}').get('id') or True
+            except Exception:
+                return True
     except urllib.error.HTTPError as e:
         if e.code == 429:
-            raise RuntimeError('Troppe segnalazioni in poco tempo: riprova tra un po\'.')
+            raise Occupato()
         raise RuntimeError('Il servizio delle segnalazioni ha risposto con un errore (%d).' % e.code)
     except urllib.error.URLError:
         raise RuntimeError('Non riesco a collegarmi al servizio delle segnalazioni: controlla la connessione a internet.')
+
+
+def leggi_json_url(url, timeout=15):
+    with urllib.request.urlopen(urllib.request.Request(url, headers=_UA), timeout=timeout) as r:
+        return json.loads(r.read().decode('utf-8') or '{}')

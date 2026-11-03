@@ -6,11 +6,11 @@
 // Impostazioni del Worker (Settings -> Variables and Secrets / Bindings):
 //   WEBHOOK            segreto: webhook del canale Discord delle segnalazioni
 //   WEBHOOK_CONTRIBUTI segreto (facoltativo): webhook del canale dove annunciare i contributi (altrimenti WEBHOOK)
-//   ADMIN              segreto: password dell'autore per scaricare i contributi
+//   ADMIN              segreto: password dell'autore per scaricare i contributi e leggere le segnalazioni
 //   DEPOSITO           binding KV namespace: il deposito degli audio
 const REPO = 'mirkodls/cotw-italiano';
-const LIMITE_ORA_PER_PC = 5;       // segnalazioni all'ora dalla stessa connessione
-const LIMITE_ORA_TOTALE = 120;     // tetto generale all'ora (contro lo spam)
+const LIMITE_ORA_PER_PC = 40;      // segnalazioni all'ora dalla stessa connessione (solo contro lo spam)
+const LIMITE_ORA_TOTALE = 300;     // tetto generale all'ora (contro lo spam)
 const PRENOTA_MAX = 60;            // battute per prenotazione
 const PRENOTA_ORE = 3;             // dopo 3 ore le battute prenotate e non consegnate tornano libere
 const AUDIO_MAX = 1024 * 1024;     // un audio non puo' superare 1 MB
@@ -62,7 +62,15 @@ async function battuteDaDoppiare(env) {
 }
 
 async function ricevuti(env) {
-  // id -> chi, dagli audio gia' nel deposito
+  // id -> chi: tenuto in una chiave sola (aggiornata a ogni audio). Se manca, si ricostruisce dal deposito.
+  const r = await env.DEPOSITO.get('ricevuti', 'json');
+  if (r) return r;
+  const out = await ricevutiDaLista(env);
+  await env.DEPOSITO.put('ricevuti', JSON.stringify(out));
+  return out;
+}
+
+async function ricevutiDaLista(env) {
   const out = {};
   let cursor;
   do {
@@ -123,6 +131,11 @@ async function contributi(req, env, url, ip) {
       ((b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) || (b[0] === 0xFF && (b[1] & 0xE0) === 0xE0));
     if (!mp3) return risposta({ errore: 'audio non valido' }, 400);
     await env.DEPOSITO.put('audio:' + id, b, { metadata: { chi, t: Date.now() } });
+    const ric = await ricevuti(env);                 // subito "fatta" per tutti
+    ric[id] = chi;
+    await env.DEPOSITO.put('ricevuti', JSON.stringify(ric));
+    const pren = await leggiPrenotate(env);
+    if (pren[id]) { delete pren[id]; await env.DEPOSITO.put('prenotate', JSON.stringify(pren)); }
     return risposta({ ok: true });
   }
 
@@ -169,7 +182,45 @@ async function admin(req, env, url) {
       const v = await env.DEPOSITO.get('audio:' + id, 'arrayBuffer');
       return v ? new Response(v, { headers: { 'Content-Type': 'audio/mpeg' } }) : risposta({ errore: 'non c\'e\'' }, 404);
     }
-    if (req.method === 'DELETE') { await env.DEPOSITO.delete('audio:' + id); return risposta({ ok: true }); }
+    if (req.method === 'DELETE') {
+      await env.DEPOSITO.delete('audio:' + id);
+      const ric = await ricevuti(env);
+      if (ric[id]) { delete ric[id]; await env.DEPOSITO.put('ricevuti', JSON.stringify(ric)); }
+      return risposta({ ok: true });
+    }
+  }
+  if (parte === 'ricevuti/ricostruisci' && req.method === 'POST') {
+    const out = await ricevutiDaLista(env);
+    await env.DEPOSITO.put('ricevuti', JSON.stringify(out));
+    return risposta({ ok: true, n: Object.keys(out).length });
+  }
+  // ---- segnalazioni (per l'app sviluppatore) ----
+  if (parte === 'segnalazioni' && req.method === 'GET') {
+    const da = parseInt(url.searchParams.get('da')) || 0;      // solo quelle dopo questo momento (ms)
+    const stati = (await env.DEPOSITO.get('stati_segn', 'json')) || {};
+    const out = [];
+    let cursor;
+    do {
+      const l = await env.DEPOSITO.list({ prefix: 'segn:', cursor });
+      for (const k of l.keys) {
+        const m = k.metadata || {};
+        if ((m.t || 0) <= da) continue;
+        out.push({ id: k.name.slice(5), t: m.t, stato: stati[k.name.slice(5)] || 'nuova',
+                   testo: await env.DEPOSITO.get(k.name) });
+        if (out.length >= 200) break;
+      }
+      cursor = l.list_complete || out.length >= 200 ? null : l.cursor;
+    } while (cursor);
+    return risposta({ segnalazioni: out.sort((a, b) => a.t - b.t) });
+  }
+  if (parte.startsWith('segnalazioni/') && req.method === 'POST') {      // stato: vista / corretta / scartata
+    const id = decodeURIComponent(parte.slice(13));
+    let d; try { d = await req.json(); } catch (e) { return risposta({ errore: 'formato' }, 400); }
+    if (!['nuova', 'vista', 'corretta', 'scartata'].includes(d.stato)) return risposta({ errore: 'stato' }, 400);
+    const stati = (await env.DEPOSITO.get('stati_segn', 'json')) || {};
+    stati[id] = d.stato;
+    await env.DEPOSITO.put('stati_segn', JSON.stringify(stati));
+    return risposta({ ok: true });
   }
   return risposta({ errore: 'sconosciuto' }, 404);
 }
@@ -184,13 +235,24 @@ async function segnalazione(req, env, ip) {
   const testo = String((d && d.testo) || '').slice(0, 1900).trim();
   if (!testo.startsWith('**Segnalazione CotW Italiano**') || testo.length < 40) return risposta({ errore: 'formato' }, 400);
   totale.push(ora);
+  const id = ora.toString(36) + Math.random().toString(36).slice(2, 8);
+  if (env.DEPOSITO) await env.DEPOSITO.put('segn:' + id, testo, { metadata: { t: ora } });
   const r = await fetch(env.WEBHOOK, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content: testo, username: 'Segnalazioni CotW Italiano', allowed_mentions: { parse: [] } }),
+    body: JSON.stringify({ content: testo + '\n`#' + id + '`', username: 'Segnalazioni CotW Italiano', allowed_mentions: { parse: [] } }),
   });
   if (!r.ok) return risposta({ errore: 'discord', codice: r.status }, 502);
-  return risposta({ ok: true });
+  return risposta({ ok: true, id });
+}
+
+async function statoSegnalazioni(env, url) {
+  // il programma chiede lo stato delle SUE segnalazioni (gli id li conosce solo chi le ha mandate)
+  const ids = (url.searchParams.get('ids') || '').split(',').filter(Boolean).slice(0, 200);
+  const stati = env.DEPOSITO ? ((await env.DEPOSITO.get('stati_segn', 'json')) || {}) : {};
+  const out = {};
+  for (const id of ids) out[id] = stati[id] || 'nuova';
+  return risposta({ stati: out });
 }
 
 export default {
@@ -200,6 +262,7 @@ export default {
     try {
       if (url.pathname.startsWith('/contributi')) return await contributi(req, env, url, ip);
       if (url.pathname.startsWith('/admin')) return await admin(req, env, url);
+      if (url.pathname === '/segnalazioni/stato') return await statoSegnalazioni(env, url);
       if (req.method === 'GET') return new Response('Postino CotW Italiano attivo.');
       if (req.method === 'POST') return await segnalazione(req, env, ip);
       return risposta({ errore: 'metodo' }, 405);

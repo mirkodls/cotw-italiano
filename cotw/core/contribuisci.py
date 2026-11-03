@@ -177,14 +177,28 @@ def _post(url, corpo=None, dati=None, timeout=30):
         raise RuntimeError('Non riesco a collegarmi al servizio dei contributi: controlla internet.')
 
 
-def stato():
-    """{'totale','fatte','prenotate','libere'} dal postino, oppure None."""
+def stato(timeout=20):
+    """{'versione','totale','fatte','prenotate','libere'} dal postino, oppure None."""
     try:
         with urllib.request.urlopen(urllib.request.Request(_postino() + '/contributi/stato', headers=rete._UA),
-                                    timeout=20) as r:
+                                    timeout=timeout) as r:
             return json.loads(r.read().decode('utf-8'))
     except Exception:
         return None
+
+
+def mie(doc):
+    """Battute di questa versione doppiate da chi usa questo PC."""
+    return percorsi.leggi_config().get('contributi_miei', {}).get(str((doc or {}).get('versione', '?')), [])
+
+
+def serve_aiuto(doc, st):
+    """Ha senso chiedere di contribuire? Solo se ci sono battute libere e non le ha gia' fatte lui."""
+    if not doc or mie(doc):
+        return False
+    if st is None:
+        return True
+    return st.get('libere', 1) > 0
 
 
 def doppia(chiave, doc, chi, avanzamento=None, fermati=None):
@@ -235,5 +249,8 @@ def doppia(chiave, doc, chi, avanzamento=None, fermati=None):
             pass
         conta = percorsi.leggi_config()
         conta['battute_doppiate'] = conta.get('battute_doppiate', 0) + fatte
+        mie = conta.setdefault('contributi_miei', {})
+        v = str(doc.get('versione', '?'))
+        mie[v] = sorted(set(mie.get(v, [])) | consegnate)
         percorsi.salva_config(conta)
     return fatte, motivo

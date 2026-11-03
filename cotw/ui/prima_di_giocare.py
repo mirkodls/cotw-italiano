@@ -8,7 +8,7 @@ import subprocess
 from PySide6.QtCore import Qt, QThread, Signal, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QProgressBar, QMessageBox
-from ..core import percorsi, rete, aggiornamenti, installa, programma
+from ..core import percorsi, rete, aggiornamenti, installa, programma, contribuisci
 from .finestra import etichetta, bottone
 from .. import VERSIONE
 
@@ -47,6 +47,7 @@ def avvia_gioco(comando):
 
 class Controllo(QThread):
     fatto = Signal(object, object)
+    stato = None
 
     def run(self):
         m = o = None
@@ -58,6 +59,8 @@ class Controllo(QThread):
             o = rete.leggi_online(timeout=5)
         except Exception:
             pass
+        if (m or {}).get('da_doppiare'):
+            self.stato = contribuisci.stato(timeout=4)
         self.fatto.emit(m, o)
 
 
@@ -148,7 +151,8 @@ class PrimaDiGiocare(QDialog):
         self.prog = programma.disponibile(o) if programma.cartella_exe() else None
         self.contr = None                       # battute da doppiare (nuove o corrette): una volta per versione
         d = (m or {}).get('da_doppiare')
-        if d and programma.cartella_exe():
+        st = self.th.stato
+        if d and programma.cartella_exe() and contribuisci.serve_aiuto({'versione': (st or {}).get('versione', d.get('tag'))}, st):
             cfg = percorsi.leggi_config()
             if cfg.get('popup_contribuisci_gioco') != d.get('tag'):
                 cfg['popup_contribuisci_gioco'] = d.get('tag')

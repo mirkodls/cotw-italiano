@@ -90,6 +90,20 @@ class Doppiaggio(QThread):
             self.errore.emit(str(e))
 
 
+class Coda(QThread):
+    """In sottofondo: spedisce le segnalazioni rimaste in coda e legge lo stato di quelle mandate."""
+    fatto = Signal(int)
+
+    def run(self):
+        n = 0
+        try:
+            n = segnala.svuota_coda()
+            segnala.aggiorna_stati()
+        except Exception:
+            pass
+        self.fatto.emit(n)
+
+
 class Crediti(QThread):
     fatto = Signal(object)
     errore = Signal(str)
@@ -106,17 +120,16 @@ class Crediti(QThread):
 
 
 class Invio(QThread):
-    fatto = Signal()
+    fatto = Signal(str)
     errore = Signal(str)
 
-    def __init__(self, testo):
+    def __init__(self, testo, info=None):
         super().__init__()
-        self.testo = testo
+        self.testo, self.info = testo, info
 
     def run(self):
         try:
-            segnala.invia(self.testo)
-            self.fatto.emit()
+            self.fatto.emit(segnala.invia(self.testo, self.info))
         except Exception as e:
             self.errore.emit(str(e))
 
@@ -233,6 +246,23 @@ class Finestra(QMainWindow):
         if not self.gioco:
             QTimer.singleShot(300, self._chiedi_gioco)
         QTimer.singleShot(800, self._controlla_online)          # controllo aggiornamenti all'avvio
+        self.t_coda = QTimer(self)                               # segnalazioni in coda: partono da sole
+        self.t_coda.timeout.connect(self._coda)
+        self.t_coda.start(5 * 60 * 1000)
+        QTimer.singleShot(4000, self._coda)
+
+    def _coda(self):
+        if getattr(self, '_th_coda', None) and self._th_coda.isRunning():
+            return
+        self._th_coda = Coda()
+        self._th_coda.fatto.connect(lambda n: (self._aggiorna_storico(), n and self.statusBar().showMessage(
+            'Inviate %d segnalazioni che erano in coda. Grazie!' % n)))
+        self._th_coda.start()
+
+    def _aggiorna_storico(self):
+        f = getattr(self, '_storico_ui', None)          # lo storico delle segnalazioni (se la pagina c'e')
+        if f:
+            f()
 
     # ---------------- utilita' ----------------
     def _pacchetto_predefinito(self):
@@ -1067,7 +1097,7 @@ class Finestra(QMainWindow):
         l.addWidget(self.s_mappa)
 
         l.addSpacing(6)
-        l.addWidget(etichetta('2. Che problema c\'e\'?', 'nome'))
+        l.addWidget(etichetta('2. Cosa e\' sbagliato?', 'nome'))
         self.s_tipo = QComboBox()
         self.s_tipo.addItems(segnala.TIPI)
         l.addWidget(self.s_tipo)
@@ -1078,16 +1108,18 @@ class Finestra(QMainWindow):
         self.s_cerca.setPlaceholderText('es.  Ecco qui mano ferma adesso')
         self.s_cerca.textChanged.connect(lambda _='': self._segnala_cerca())
         l.addWidget(self.s_cerca)
-        self.s_forse = etichetta('Forse e\' una di queste? Se si\', cliccala (non e\' obbligatorio).', 'tenue')
+        self.s_forse = etichetta('Forse e\' una di queste? Se si\', cliccala: la mette lei qui sopra.', 'tenue')
         l.addWidget(self.s_forse)
         self.s_lista = QListWidget()
         self.s_lista.setFixedHeight(84)
+        self.s_lista.itemClicked.connect(self._segnala_scegli)
+        self.s_scelta = None
         l.addWidget(self.s_lista)
         self.s_forse.hide()
         self.s_lista.hide()
 
         l.addSpacing(6)
-        l.addWidget(etichetta('4. Cosa non va? (facoltativo)', 'nome'))
+        l.addWidget(etichetta('4. Spiega brevemente cosa non va', 'nome'))
         self.s_commento = QLineEdit()
         self.s_commento.setPlaceholderText('es.  manca il punto dopo "qui"  /  dice "pennelo"  /  si sente in inglese')
         l.addWidget(self.s_commento)
@@ -1106,7 +1138,24 @@ class Finestra(QMainWindow):
         lay.addStretch(1)
         return area
 
+    def _segnala_scegli(self, it):
+        """Clic su un suggerimento: la frase va nel campo sopra e resta scelta."""
+        b = it.data(Qt.UserRole)
+        self.s_scelta = b
+        self.s_cerca.blockSignals(True)
+        self.s_cerca.setText(b.get('it', ''))
+        self.s_cerca.blockSignals(False)
+        self.s_lista.clear()
+        x = QListWidgetItem('\u2714  %s:  %s' % (b.get('chi', '?'), b.get('it', '')))
+        x.setData(Qt.UserRole, b)
+        self.s_lista.addItem(x)
+        self.s_lista.setCurrentItem(x)
+        self.s_forse.setText('Frase scelta. Se non e\' quella giusta, cambia il testo qui sopra.')
+        self.s_commento.setFocus()
+
     def _segnala_cerca(self):
+        self.s_scelta = None
+        self.s_forse.setText('Forse e\' una di queste? Se si\', cliccala: la mette lei qui sopra.')
         self.s_lista.clear()
         testo = self.s_cerca.text()
         ris = segnala.cerca(testo, self.s_mappa.currentText(), massimo=3) if len(testo.split()) >= 2 else []
@@ -1118,11 +1167,12 @@ class Finestra(QMainWindow):
         self.s_lista.setVisible(bool(ris))
 
     def _segnala_testo(self):
-        it = self.s_lista.currentItem() if self.s_lista.isVisible() else None
-        b = it.data(Qt.UserRole) if it else None
+        b = self.s_scelta
         frase, commento = self.s_cerca.text().strip(), self.s_commento.text().strip()
-        if not frase and not commento:
-            self._messaggio('Manca qualcosa', 'Scrivi la frase sbagliata, oppure cosa non va.', 'avviso')
+        if len(commento) < 3:
+            self._messaggio('Manca qualcosa', 'Al punto 4 spiega brevemente cosa non va '
+                            '(es. "dice pennelo invece di pennello", "si sente in inglese").', 'avviso')
+            self.s_commento.setFocus()
             return None
         autore = self.s_autore.text().strip()
         cfg = percorsi.leggi_config()
@@ -1131,6 +1181,8 @@ class Finestra(QMainWindow):
             percorsi.salva_config(cfg)
         st = installa.leggi_stato()['componenti']
         mia = st.get('audio', {}).get('versione') or st.get('testo', {}).get('versione')
+        self._s_info = {'tipo': self.s_tipo.currentText(), 'mappa': self.s_mappa.currentText(), 'frase': frase,
+                        'commento': commento, 'battuta': (b or {}).get('id')}
         return segnala.messaggio(self.s_tipo.currentText(), self.s_mappa.currentText(), frase, commento,
                                  b, autore, mia, VERSIONE)
 
@@ -1140,18 +1192,23 @@ class Finestra(QMainWindow):
             return
         self.s_invia.setEnabled(False)
         self.s_invia.setText('Invio in corso...')
-        th = Invio(msg)
+        th = Invio(msg, getattr(self, '_s_info', None))
         self._invio = th
 
-        def fatto():
+        def fatto(esito):
             self.s_invia.setEnabled(True)
             self.s_invia.setText('Invia segnalazione')
             self.s_commento.clear()
             self.s_cerca.clear()
-            self.statusBar().showMessage('Segnalazione inviata.')
-            self._messaggio('Grazie!', 'Grazie mille per la segnalazione!\n\n'
-                                       'E\' arrivata sul Discord della mod e verra\' controllata e corretta in un prossimo '
-                                       'aggiornamento.\nCosi\' aiuti a migliorare la traduzione per tutti.')
+            self.statusBar().showMessage('Segnalazione inviata.' if esito == 'inviata' else 'Segnalazione in coda.')
+            if esito == 'inviata':
+                t = ('E\' arrivata sul Discord della mod e verra\' controllata e corretta in un prossimo aggiornamento.')
+            else:
+                t = ('L\'ho salvata e la mando da sola tra pochi minuti (in questo momento il servizio e\' occupato '
+                     'o internet non risponde): non devi fare niente.')
+            self._messaggio('Grazie!', 'Grazie mille per la segnalazione!\n\n' + t +
+                            '\nPiu\' ne mandi, meglio e\': cosi\' aiuti a migliorare la traduzione per tutti.')
+            self._aggiorna_storico()
 
         def errore(e):
             self.s_invia.setEnabled(True)
@@ -1284,14 +1341,29 @@ class Finestra(QMainWindow):
             tot = len(doc['battute'])
             fatte = (st or {}).get('fatte', 0)
             libere = (st or {}).get('libere', tot)
-            self.c_stato_l.setText('Ci sono %d battute nuove da doppiare (versione %s): %s. '
-                                   'Contribuisci gratuitamente per tutta la community!'
-                                   % (tot, doc.get('versione', '?'), 'ne manca 1' if libere == 1 else
-                                      ('ne mancano %d' % libere) if libere else 'sono tutte prenotate o fatte'))
+            prenotate = (st or {}).get('prenotate', 0)
+            mie = len(contribuisci.mie(doc))
+            if fatte >= tot:
+                t = (('La battuta della versione %s e\' stata doppiata' % doc.get('versione', '?')) if tot == 1 else
+                     ('Tutte le %d battute della versione %s sono state doppiate' % (tot, doc.get('versione', '?')))) + \
+                    ' dalla community: grazie! Arrivera\' a tutti con il prossimo aggiornamento.'
+            elif libere:
+                t = ('Ci sono %d battute da doppiare (versione %s): %s. Contribuisci gratuitamente per tutta la '
+                     'community!' % (tot, doc.get('versione', '?'), 'ne manca 1' if libere == 1 else 'ne mancano %d' % libere))
+            else:
+                t = ('Le battute rimaste (%d) le sta gia\' doppiando qualcuno in questo momento: se non le finisce, '
+                     'entro 3 ore tornano libere.' % prenotate)
+            if mie:
+                t += '\n\u2714 Tu ne hai doppiate %d: grazie!' % mie
+            self.c_stato_l.setText(t)
             self.c_barra_tot.setMaximum(max(tot, 1))
-            self.c_barra_tot.setValue(fatte)
+            self.c_barra_tot.setValue(min(fatte, tot))
             self.c_barra_tot.show()
-        self.c_passi.setEnabled(bool(doc) or lavora)
+            if not lavora:
+                self.c_via.setEnabled(bool(libere))
+        self.c_passi.setEnabled(True)                   # account e chiave si preparano anche quando non c'e' niente
+        if not doc and not lavora:
+            self.c_via.setEnabled(False)
         self.c_video.setVisible(bool(self.c_online.get('video_chiave')))
         cc = (self.manifest or {}).get('contributori') or []
         self.c_grazie.setText(', '.join('%s (%d)' % (c['nome'], c['battute']) for c in cc) if cc else
@@ -1299,7 +1371,7 @@ class Finestra(QMainWindow):
 
     def _popup_contribuisci(self):
         d = (self.manifest or {}).get('da_doppiare')
-        if not d or not self.c_doc:
+        if not d or not self.c_doc or not contribuisci.serve_aiuto(self.c_doc, self.c_stato):
             return
         cfg = percorsi.leggi_config()
         if cfg.get('popup_contribuisci') == d.get('tag'):
@@ -1363,7 +1435,11 @@ class Finestra(QMainWindow):
             self.c_via.setEnabled(True)
             self.c_ferma.hide()
             self.c_info.setText(('Hai doppiato %d battute. ' % n if n else '') + (motivo or ''))
-            self._controlla_online()
+            if n and self.c_stato:                          # subito aggiornato, senza aspettare il postino
+                self.c_stato['fatte'] = self.c_stato.get('fatte', 0) + n
+                self.c_stato['prenotate'] = max(0, self.c_stato.get('prenotate', 0) - n)
+            self._aggiorna_contribuisci()
+            QTimer.singleShot(20000, self._controlla_online)
             if n:
                 self._messaggio('Grazie!', 'Grazie mille! Hai doppiato %d battute per tutta la community.\n\n'
                                            'Le ascoltiamo e le mettiamo nel prossimo aggiornamento, con il tuo nome '

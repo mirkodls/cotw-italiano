@@ -6,17 +6,7 @@ import time
 import unicodedata
 from . import aggiornamenti, rete, percorsi
 
-TIPI = ['Audio: pronuncia sbagliata',
-        'Audio: voce tagliata o troppo veloce',
-        'Audio: si sente in inglese',
-        'Audio: la voce dice una cosa diversa dalla scritta',
-        'Audio: voce sbagliata (uomo/donna, personaggio sbagliato)',
-        'Scritto: errore di ortografia',
-        'Scritto: parola sbagliata',
-        'Scritto: la frase non ha senso / traduzione sbagliata',
-        'Scritto: punteggiatura (manca un punto, una virgola...)',
-        'Scritto: testo rimasto in inglese',
-        'Altro (crash, il programma non funziona...)']
+TIPI = ['Audio (la voce)', 'Testo (la scritta)', 'Entrambi (voce e scritta)']
 _MAPPE = ['Hirschfelden', 'Layton Lake', 'Medved-Taiga', 'Vurhonga Savanna', 'Parque Fernando', 'Yukon Valley',
           'Cuatro Colinas', 'Silver Ridge Peaks', 'Te Awaroa', 'Rancho del Arroyo', 'Mississippi Acres',
           'Revontuli Coast', 'New England', 'Emerald Coast', 'Sundarpatan', 'Salzwiesen Park', 'Askiy Ridge',
@@ -115,39 +105,121 @@ def messaggio(tipo, mappa='', frase='', commento='', battuta=None, autore='', ve
 
 
 # ---------------- invio diretto al Discord ----------------
-LIMITE_ORA = 5          # segnalazioni massime per ora dallo stesso PC (contro lo spam)
-LIMITE_GIORNO = 20
+# Piu' segnalazioni arrivano, meglio e'. Se il postino e' occupato (o internet manca) la segnalazione resta
+# in coda sul PC e parte da sola appena si puo'. Ognuna finisce nello storico, con il suo stato.
+LIMITE_ORA = 40         # solo contro lo spam: oltre, si mette in coda (non si perde niente)
 
 
 def _postino():
     """Indirizzo del postino (Cloudflare Worker) scritto in online.json del repository. Non e' un segreto:
     il segreto (il webhook del canale) sta solo nelle impostazioni del Worker."""
     u = rete.leggi_online().get('postino')
-    return u if isinstance(u, str) and u.startswith('https://') else None
+    return u if isinstance(u, str) and u.startswith(('https://', 'http://127.0.0.1')) else None
 
 
-def _registro():
-    return os.path.join(percorsi.dati_app(), 'segnalazioni_inviate.json')
+def _file(nome):
+    return os.path.join(percorsi.dati_app(), nome)
 
 
-def _inviate():
+def _leggi(nome, vuoto):
     try:
-        return [t for t in json.load(open(_registro(), encoding='utf-8')) if t > time.time() - 86400]
+        return json.load(open(_file(nome), encoding='utf-8'))
     except Exception:
-        return []
+        return vuoto
 
 
-def invia(testo):
-    """Manda la segnalazione direttamente nel canale. Errore leggibile se non si puo'."""
-    fatte = _inviate()
-    if len([t for t in fatte if t > time.time() - 3600]) >= LIMITE_ORA or len(fatte) >= LIMITE_GIORNO:
-        raise RuntimeError('Hai gia\' mandato molte segnalazioni: grazie! Riprova piu\' tardi.')
-    url = _postino()
-    if not url:
-        raise RuntimeError('L\'invio diretto non e\' disponibile in questo momento.')
-    rete.invia_postino(url, testo)
-    fatte.append(time.time())
+def _scrivi(nome, dati):
     try:
-        json.dump(fatte, open(_registro(), 'w', encoding='utf-8'))
+        tmp = _file(nome) + '.tmp'
+        json.dump(dati, open(tmp, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+        os.replace(tmp, _file(nome))
     except OSError:
         pass
+
+
+def storico():
+    """[{'n','t','tipo','mappa','frase','commento','id','stato'}] dalla piu' recente.
+    stato: in_coda / nuova / vista / corretta / scartata"""
+    return sorted(_leggi('segnalazioni_storico.json', []), key=lambda x: -x.get('t', 0))
+
+
+def _salva_storico(voce):
+    st = _leggi('segnalazioni_storico.json', [])
+    for i, v in enumerate(st):
+        if v.get('n') == voce['n']:
+            st[i] = voce
+            break
+    else:
+        st.append(voce)
+    _scrivi('segnalazioni_storico.json', st[-500:])
+
+
+def _inviate_ultima_ora():
+    return [t for t in _leggi('segnalazioni_inviate.json', []) if t > time.time() - 3600]
+
+
+def _spedisci(voce):
+    """True se partita. Occupato/senza internet -> False (resta in coda)."""
+    url = _postino()
+    if not url or len(_inviate_ultima_ora()) >= LIMITE_ORA:
+        return False
+    try:
+        r = rete.invia_postino(url, voce['testo'])
+    except rete.Occupato:
+        return False
+    except RuntimeError as e:
+        if 'collegarmi' in str(e):
+            return False
+        raise
+    fatte = _inviate_ultima_ora() + [time.time()]
+    _scrivi('segnalazioni_inviate.json', fatte)
+    voce['id'] = r if isinstance(r, str) else None
+    voce['stato'] = 'nuova'
+    return True
+
+
+def invia(testo, info=None):
+    """Manda la segnalazione. 'inviata' oppure 'in_coda' (parte da sola appena si puo').
+    Errore solo se il postino rifiuta proprio la segnalazione."""
+    voce = dict(info or {}, testo=testo, t=time.time(), n='%d' % (time.time() * 1000), stato='in_coda')
+    try:
+        ok = _spedisci(voce)
+    finally:
+        _salva_storico(voce)
+    return 'inviata' if ok else 'in_coda'
+
+
+def in_coda():
+    return [v for v in _leggi('segnalazioni_storico.json', []) if v.get('stato') == 'in_coda']
+
+
+def svuota_coda():
+    """Prova a spedire quelle rimaste in coda. Restituisce quante sono partite."""
+    n = 0
+    for v in in_coda():
+        try:
+            if not _spedisci(v):
+                break
+        except Exception:
+            continue
+        _salva_storico(v)
+        n += 1
+    return n
+
+
+def aggiorna_stati():
+    """Chiede al postino lo stato delle proprie segnalazioni (corretta = spunta verde). Restituisce lo storico."""
+    st = _leggi('segnalazioni_storico.json', [])
+    ids = [v['id'] for v in st if v.get('id') and v.get('stato') not in ('corretta', 'scartata')]
+    url = _postino()
+    if ids and url:
+        try:
+            q = url.rstrip('/') + '/segnalazioni/stato?ids=' + ','.join(ids[-200:])
+            stati = rete.leggi_json_url(q).get('stati', {})
+            for v in st:
+                if v.get('id') in stati:
+                    v['stato'] = stati[v['id']]
+            _scrivi('segnalazioni_storico.json', st)
+        except Exception:
+            pass
+    return storico()
