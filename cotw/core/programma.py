@@ -87,7 +87,10 @@ def installa_e_riavvia(nuova, argomenti=None):
              ':copia']
     if nuova.lower().endswith('.exe') and not installato():
         # veniva da uno zip estratto chissa' dove: installazione normale (scegli dove, icona sul desktop);
-        # alla fine l'installer stesso riapre il programma
+        # alla fine l'installer stesso riapre il programma, che poi cancella la cartella vecchia
+        cfg = percorsi.leggi_config()
+        cfg['cartella_vecchia'] = app
+        percorsi.salva_config(cfg)
         righe.append('start "" "%s"' % nuova)
         with open(script, 'w', encoding='utf-8') as f:
             f.write('\r\n'.join(righe) + '\r\n')
@@ -104,3 +107,24 @@ def installa_e_riavvia(nuova, argomenti=None):
         f.write('\r\n'.join(righe) + '\r\n')
     # finestra nascosta + gruppo separato: lo script sopravvive alla chiusura del programma
     subprocess.Popen(['cmd', '/c', script], creationflags=0x08000000 | 0x00000200, close_fds=True)
+
+
+def pulisci_cartella_vecchia():
+    """Dopo l'installazione: cancella la cartella dove stava estratto il programma vecchio (solo se e' davvero sua).
+    Restituisce (cartella_vecchia, cancellata) oppure None."""
+    cfg = percorsi.leggi_config()
+    vecchia = cfg.get('cartella_vecchia')
+    attuale = cartella_exe()
+    if not vecchia or not attuale or os.path.normcase(os.path.abspath(vecchia)) == os.path.normcase(attuale):
+        return None
+    ok = False
+    if os.path.isdir(vecchia) and os.path.isfile(os.path.join(vecchia, NOME_EXE)) \
+            and os.path.isfile(os.path.join(vecchia, 'LICENZA_TRADUZIONE.txt')) \
+            and not os.path.isfile(os.path.join(vecchia, 'unins000.exe')) \
+            and len(os.listdir(vecchia)) < 200:                # solo la cartella del programma, niente altro
+        shutil.rmtree(vecchia, ignore_errors=True)
+        ok = not os.path.exists(vecchia)
+    cfg.pop('cartella_vecchia', None)
+    percorsi.salva_config(cfg)
+    return vecchia, ok
+

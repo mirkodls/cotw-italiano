@@ -285,20 +285,34 @@ class Finestra(QMainWindow):
             self._proponi_controllo()
 
     def _steam_spostato(self):
-        """Il programma e' stato installato/spostato: Steam apre ancora quello vecchio. Si propone di sistemarlo."""
+        """Il programma e' stato installato/spostato: Steam apre ancora quello vecchio. Si propone di sistemarlo.
+        Poi: collegamenti sul desktop verso il programma nuovo e cancellazione della cartella vecchia (dallo zip)."""
         exe = programma.cartella_exe()
         if not exe:
             return
+        vecchia = percorsi.leggi_config().get('cartella_vecchia')
+        if vecchia:
+            try:
+                avvio.sposta_collegamenti(vecchia, os.path.join(exe, programma.NOME_EXE))
+            except Exception:
+                pass
         try:
             att = avvio.controllo_attivo(avvio.stato_steam()[1])
         except Exception:
-            return
+            att = None
         nuovo = os.path.join(exe, programma.NOME_EXE)
         if att and os.path.normcase(att) != os.path.normcase(nuovo):
             if QMessageBox.question(self, 'Avvio da Steam', 'Il programma adesso sta in una cartella nuova, ma Steam apre '
                                     'ancora quello vecchio quando premi Gioca.\n\nSistemo io?'
                                     ) == QMessageBox.Yes:
                 self._controllo(True)
+        if vecchia:
+            try:
+                r = programma.pulisci_cartella_vecchia()
+                if r and r[1]:
+                    self.statusBar().showMessage('Installato. Ho cancellato la cartella vecchia: %s' % r[0])
+            except Exception:
+                pass
 
     def _dentro_lo_zip(self):
         """Aperto con doppio clic DENTRO lo zip: Windows lo mette in una cartella temporanea che sparisce."""

@@ -284,3 +284,36 @@ def crea_collegamento(gioco, nome='theHunter COTW con mod', programma_exe=None):
     if r.returncode != 0 or not os.path.isfile(lnk):
         raise RuntimeError('Non sono riuscito a creare il collegamento: ' + (r.stderr or '').strip()[:300])
     return lnk
+
+
+def _desktop():
+    desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
+    try:
+        import ctypes
+        from ctypes import wintypes
+        buf = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
+        ctypes.windll.shell32.SHGetFolderPathW(None, 0x10, None, 0, buf)
+        if buf.value:
+            desktop = buf.value
+    except Exception:
+        pass
+    return desktop
+
+
+def sposta_collegamenti(vecchia, nuovo_exe):
+    """I collegamenti sul desktop che aprivano il programma nella cartella vecchia ora aprono quello nuovo."""
+    if not percorsi.IS_WIN:
+        return 0
+    ps = ("$n=0; $w=New-Object -ComObject WScript.Shell; "
+          "Get-ChildItem -LiteralPath '{d}' -Filter *.lnk | ForEach-Object {{ $s=$w.CreateShortcut($_.FullName); "
+          "if ($s.TargetPath -and $s.TargetPath.ToLower().StartsWith('{v}'.ToLower())) {{ $s.TargetPath='{t}'; "
+          "$s.WorkingDirectory='{c}'; $s.Save(); $n++ }} }}; $n").format(
+        d=_desktop().replace("'", "''"), v=(vecchia.rstrip('\\') + '\\').replace("'", "''"),
+        t=nuovo_exe.replace("'", "''"), c=os.path.dirname(nuovo_exe).replace("'", "''"))
+    r = subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps],
+                       capture_output=True, text=True, creationflags=0x08000000)
+    try:
+        return int((r.stdout or '0').strip().splitlines()[-1])
+    except Exception:
+        return 0
+
