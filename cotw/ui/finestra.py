@@ -227,6 +227,7 @@ class Finestra(QMainWindow):
         disc.setToolTip('Apre il server Discord: novita\', aiuto e segnalazioni.')
         disc.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(rete.DISCORD)))
         bl.addWidget(disc)
+        self.b_discord = disc
         dona = QPushButton('\u2665  Sostieni il progetto')
         dona.setObjectName('dona')
         dona.setCursor(Qt.PointingHandCursor)
@@ -247,10 +248,40 @@ class Finestra(QMainWindow):
             QTimer.singleShot(300, self._chiedi_gioco)
         QTimer.singleShot(800, self._controlla_online)          # controllo aggiornamenti all'avvio
         QTimer.singleShot(200, self._dentro_lo_zip)
+        self._tutorial_attivo, self._popup_rimandati = False, False
+        QTimer.singleShot(700, self._tutorial_avvio)
         self.t_coda = QTimer(self)                               # segnalazioni in coda: partono da sole
         self.t_coda.timeout.connect(self._coda)
         self.t_coda.start(5 * 60 * 1000)
         QTimer.singleShot(4000, self._coda)
+
+    # ---------------- tutorial ----------------
+    def _tutorial_avvio(self, tutto=False):
+        from . import tutorial
+        passi = tutorial.PASSI if tutto else tutorial.passi_da_mostrare(percorsi.leggi_config().get('tutorial_visto'))
+        if not passi or self._tutorial_attivo:
+            return
+        self._tutorial_attivo = True
+        self._tut = tutorial.Tutorial(self, list(passi), self._tutorial_fine)
+
+    def _tutorial_fine(self):
+        self._tutorial_attivo = False
+        cfg = percorsi.leggi_config()
+        cfg['tutorial_visto'] = VERSIONE
+        percorsi.salva_config(cfg)
+        self._vai_a(0)
+        if self._popup_rimandati:              # i popup arrivati durante il tutorial
+            self._popup_rimandati = False
+            QTimer.singleShot(300, self._popup_avvio)
+
+    def _popup_avvio(self):
+        if not self._popup_programma():
+            if '--contribuisci' in sys.argv and not getattr(self, '_aperto_contribuisci', False):
+                self._aperto_contribuisci = True
+                self._vai_a(6)
+            else:
+                self._popup_contribuisci()
+            self._proponi_controllo()
 
     def _dentro_lo_zip(self):
         """Aperto con doppio clic DENTRO lo zip: Windows lo mette in una cartella temporanea che sparisce."""
@@ -535,6 +566,7 @@ class Finestra(QMainWindow):
                               'lo installa. Se la mod e\' gia\' nel gioco, riusa i file che sono uguali.', 'tenue'))
         r = QHBoxLayout()
         b = bottone('Scarica e installa', 'primario')
+        self.i_scarica = b
         b.clicked.connect(self._scarica_installa)
         r.addWidget(b)
         b = bottone('Controlla aggiornamenti')
@@ -652,13 +684,10 @@ class Finestra(QMainWindow):
             self.manifest, self.errore_online, self.controllato = m, None, True
             self.c_doc, self.c_stato, self.c_online = th.doc, th.stato, th.online
             self.aggiorna_tutto()
-            if not self._popup_programma():
-                if '--contribuisci' in sys.argv and not getattr(self, '_aperto_contribuisci', False):
-                    self._aperto_contribuisci = True
-                    self._vai_a(6)
-                else:
-                    self._popup_contribuisci()
-                self._proponi_controllo()
+            if self._tutorial_attivo:
+                self._popup_rimandati = True
+            else:
+                self._popup_avvio()
             if mostra:
                 self._messaggio('Aggiornamenti', self.i_online.text())
 
@@ -1053,6 +1082,8 @@ class Finestra(QMainWindow):
         self.l_quad = QLabel('50%')
         self.l_quad.setFixedWidth(52)
         self.s_quad.valueChanged.connect(lambda v: self.l_quad.setText('%d%%' % v))
+        self._quad_toccato = False                     # finche' non lo muovi, la barra segue il volume attuale
+        self.s_quad.actionTriggered.connect(lambda _a: setattr(self, '_quad_toccato', True))
         r.addWidget(self.s_quad, 1)
         r.addWidget(self.l_quad)
         l.addLayout(r)
@@ -1075,6 +1106,8 @@ class Finestra(QMainWindow):
         if self.gioco:
             v = quad.volume_attuale(self.dz())
             self.l_quad_ora.setText('Adesso: ' + ('originale' if v == 100 else ('%d%%' % v if v is not None else '?')))
+            if v is not None and not self._quad_toccato:
+                self.s_quad.setValue(int(v))
 
     def _applica_quad(self):
         if not self._pronto():
@@ -1093,6 +1126,7 @@ class Finestra(QMainWindow):
         if not self._pronto():
             return
         quad.ripristina(self.dz())
+        self._quad_toccato = False
         self.statusBar().showMessage('Quad tornato al suono originale.')
         self.aggiorna_tutto()
 
@@ -1516,6 +1550,9 @@ class Finestra(QMainWindow):
         r.addWidget(self.imp_prog_b)
         b = bottone('Controlla')
         b.clicked.connect(lambda: self._controlla_online(mostra=True))
+        r.addWidget(b)
+        b = bottone('Rivedi il tutorial')
+        b.clicked.connect(lambda: self._tutorial_avvio(tutto=True))
         r.addWidget(b)
         r.addStretch(1)
         l.addLayout(r)
