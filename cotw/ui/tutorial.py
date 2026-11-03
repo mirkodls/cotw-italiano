@@ -25,6 +25,12 @@ PASSI = [
     dict(dal='0.5.2', pagina=3, bersaglio='sv_azzera', titolo='Azzera le missioni',
          testo='Rigiochi tutte le missioni in italiano senza perdere nessun altro progresso.\nPrima fa da solo il '
                'backup dei salvataggi.'),
+    dict(dal='0.5.5', pagina=7, bersaglio='imp_tasti', titolo='Segnala mentre giochi',
+         testo='Vedi o senti un errore in partita? Premi Ctrl+Alt+S: la finestra Segnala errore si apre sopra il '
+               'gioco.\nQui puoi cambiare la scorciatoia.'),
+    dict(dal='0.5.5', pagina=0, bersaglio='b_grazie', titolo='Ringraziamenti',
+         testo='Qui ci sono i nomi di chi segnala gli errori e di chi doppia le battute con la sua chiave '
+               'ElevenLabs. Scrivi il tuo nome quando segnali o contribuisci!'),
     dict(dal='0.0.0', pagina=0, bersaglio=None, titolo='Tutto pronto!',
          testo='Buona caccia in italiano!\nIl giro lo rivedi quando vuoi da Impostazioni.'),
 ]

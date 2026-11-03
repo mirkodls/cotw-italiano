@@ -8,7 +8,7 @@ import subprocess
 from PySide6.QtCore import Qt, QThread, Signal, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QProgressBar, QMessageBox
-from ..core import percorsi, rete, aggiornamenti, installa, programma, contribuisci
+from ..core import percorsi, rete, aggiornamenti, installa, programma, contribuisci, scorciatoia
 from .finestra import etichetta, bottone
 from .. import VERSIONE
 
@@ -44,6 +44,7 @@ def avvia_gioco(comando):
                          creationflags=0x00000008 | 0x00000200 if sys.platform == 'win32' else 0, close_fds=True)
     else:
         QDesktopServices.openUrl(QUrl('steam://rungameid/' + APP_ID))
+    scorciatoia.avvia_compagno()          # scorciatoia Segnala finche' giochi (se c'e' gia', il nuovo esce)
 
 
 class Controllo(QThread):

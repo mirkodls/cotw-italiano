@@ -32,7 +32,13 @@ def main():
     if '--disinstalla' in sys.argv:            # dall'installer: toglie il controllo prima di giocare da Steam
         sys.exit(disinstalla())
     app = QApplication(sys.argv)
-    if '--gioco' in sys.argv:                  # premuto Gioca (Steam o collegamento): controllo veloce e via
+    if '--compagno' in sys.argv:               # mentre giochi: scorciatoia che apre Segnala errore sopra il gioco
+        app.setApplicationName('CotW Italiano')
+        app.setStyle('Fusion')
+        app.setStyleSheet(stile.QSS)
+        from cotw.ui import compagno
+        sys.exit(compagno.esegui(app))
+    if '--gioco' in sys.argv:                 # premuto Gioca (Steam o collegamento): controllo veloce e via
         app.setApplicationName('CotW Italiano')
         app.setStyle('Fusion')
         app.setStyleSheet(stile.QSS)

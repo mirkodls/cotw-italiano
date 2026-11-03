@@ -5,14 +5,15 @@ import subprocess
 import traceback
 
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
-from PySide6.QtGui import QGuiApplication, QDesktopServices
+from PySide6.QtGui import QGuiApplication, QDesktopServices, QKeySequence
 from PySide6.QtCore import QUrl
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton,
                                QStackedWidget, QFrame, QCheckBox, QLineEdit, QFileDialog, QProgressBar, QSlider,
                                QComboBox, QMessageBox, QButtonGroup, QScrollArea, QSizePolicy,
-                               QListWidget, QListWidgetItem, QInputDialog, QPlainTextEdit)
+                               QListWidget, QListWidgetItem, QInputDialog, QPlainTextEdit, QDialog, QKeySequenceEdit)
 
-from ..core import percorsi, installa, quad, missioni, avvio, rete, aggiornamenti, segnala, contribuisci, programma
+from ..core import percorsi, installa, quad, missioni, avvio, rete, aggiornamenti, segnala, contribuisci, programma, \
+    scorciatoia
 from .. import VERSIONE
 from . import stile
 
@@ -190,6 +191,7 @@ class Finestra(QMainWindow):
         self.setMinimumSize(880, 600)
         self.lavoro = None
         self.manifest, self.errore_online, self.controllato = None, None, False
+        self._compagno_lanciato = False
         self.c_doc, self.c_stato, self.c_lavoro, self.c_online = None, None, None, {}
         self.gioco = percorsi.trova_gioco()
         cfg = percorsi.leggi_config()
@@ -234,6 +236,13 @@ class Finestra(QMainWindow):
         dona.setToolTip('Una donazione libera su Ko-fi: aiuta a pagare le voci per le mappe nuove.')
         dona.clicked.connect(self._dona)
         bl.addWidget(dona)
+        grazie = QPushButton('Ringraziamenti')
+        grazie.setObjectName('grazie')
+        grazie.setCursor(Qt.PointingHandCursor)
+        grazie.setToolTip('Chi ha segnalato errori e chi ha doppiato battute con la sua chiave ElevenLabs.')
+        grazie.clicked.connect(self._ringraziamenti)
+        bl.addWidget(grazie)
+        self.b_grazie = grazie
         bl.addWidget(etichetta('di Mirko Del Sette', 'sottologo'))
         h.addWidget(barra)
         h.addWidget(self.pagine, 1)
@@ -475,6 +484,11 @@ class Finestra(QMainWindow):
     def _controlla_gioco(self):
         aperto = percorsi.gioco_in_esecuzione()
         self.avviso_gioco.setVisible(aperto)
+        if aperto and not self._compagno_lanciato:      # gioco avviato senza passare da noi: scorciatoia attiva lo stesso
+            self._compagno_lanciato = True
+            scorciatoia.avvia_compagno()
+        elif not aperto:
+            self._compagno_lanciato = False
 
     def _chiedi_gioco(self):
         self._messaggio('Cartella del gioco', 'Non ho trovato theHunter: Call of the Wild da solo.\n'
@@ -1283,7 +1297,9 @@ class Finestra(QMainWindow):
     # ======================= SEGNALA ERRORE =======================
     def _segnala(self):
         area, lay = pagina('Segnala errore', 'Hai visto una scritta sbagliata o sentito una voce sbagliata? Compila qui sotto '
-                                            'e premi Invia: la segnalazione arriva da sola sul Discord della mod.')
+                                            'e premi Invia: la segnalazione arriva da sola sul Discord della mod.\n'
+                                            'Mentre giochi basta la scorciatoia (Impostazioni): questa finestra si apre '
+                                            'sopra il gioco.')
         f, l = scheda()
         l.addWidget(etichetta('1. Mappa', 'nome'))
         self.s_mappa = QComboBox()
@@ -1321,7 +1337,7 @@ class Finestra(QMainWindow):
 
         l.addSpacing(10)
         r = QHBoxLayout()
-        r.addWidget(etichetta('Il tuo nome su Discord (facoltativo)', a_capo=False))
+        r.addWidget(etichetta('Il tuo nome (facoltativo, finisce nei ringraziamenti)', a_capo=False))
         self.s_autore = QLineEdit(percorsi.leggi_config().get('nome_discord', ''))
         self.s_autore.setMaxLength(40)
         r.addWidget(self.s_autore, 1)
@@ -1415,6 +1431,43 @@ class Finestra(QMainWindow):
         th.fatto.connect(fatto)
         th.errore.connect(errore)
         th.start()
+
+    # ======================= RINGRAZIAMENTI =======================
+    def _ringraziamenti(self):
+        man = self.manifest or {}
+        cc, ss = man.get('contributori') or [], man.get('segnalatori') or []
+        d = QDialog(self)
+        d.setWindowTitle('Ringraziamenti')
+        d.setMinimumWidth(560)
+        l = QVBoxLayout(d)
+        l.setContentsMargins(24, 20, 24, 20)
+        l.setSpacing(10)
+        l.addWidget(etichetta('Grazie a tutti!', 'titolo'))
+        l.addWidget(etichetta('La traduzione migliora grazie a chi segnala gli errori e a chi doppia le battute nuove '
+                              'con la sua chiave ElevenLabs. I nomi si aggiornano a ogni versione della traduzione.',
+                              'tenue'))
+
+        def lista(titolo, el, chiave, uno, tanti):
+            l.addWidget(etichetta(titolo, 'nome'))
+            t = QPlainTextEdit()
+            t.setReadOnly(True)
+            t.setPlainText('\n'.join('%s  (%d %s)' % (x.get('nome', '?'), x.get(chiave, 0),
+                                                         uno if x.get(chiave, 0) == 1 else tanti) for x in el)
+                           if el else ('Ancora nessuno: potresti essere il primo!' if self.controllato else
+                                       'Controllo in corso... riapri tra qualche secondo.'))
+            t.setFixedHeight(130)
+            l.addWidget(t)
+        lista('Hanno doppiato battute con la loro chiave ElevenLabs', cc, 'battute', 'battuta', 'battute')
+        lista('Hanno segnalato errori', ss, 'segnalazioni', 'segnalazione', 'segnalazioni')
+        l.addWidget(etichetta('Vuoi esserci anche tu? Usa "Segnala errore" o "Contribuisci" e scrivi il tuo nome.',
+                              'tenue'))
+        r = QHBoxLayout()
+        r.addStretch(1)
+        b = bottone('Chiudi', 'primario')
+        b.clicked.connect(d.accept)
+        r.addWidget(b)
+        l.addLayout(r)
+        d.exec()
 
     # ======================= CONTRIBUISCI =======================
     def _contribuisci(self):
@@ -1709,6 +1762,34 @@ class Finestra(QMainWindow):
         lay.addWidget(f)
 
         f, l = scheda()
+        l.addWidget(etichetta('Segnalare mentre giochi', 'nome'))
+        l.addWidget(etichetta('Quando parte il gioco compare per qualche secondo un avviso con la scorciatoia. Premila '
+                              'quando vedi o senti un errore: la finestra Segnala errore si apre sopra il gioco, premi '
+                              'Invia e torni a giocare. (Con il gioco a "schermo intero" il gioco si riduce un attimo: con '
+                              '"finestra senza bordi" resta sotto.)', 'tenue'))
+        self.imp_scorc = QCheckBox('Attiva la scorciatoia mentre giochi')
+        self.imp_scorc.setChecked(scorciatoia.attiva())
+        self.imp_scorc.toggled.connect(self._scorciatoia_onoff)
+        l.addWidget(self.imp_scorc)
+        r = QHBoxLayout()
+        r.addWidget(etichetta('Scorciatoia:', 'nome', False))
+        self.imp_tasti = QKeySequenceEdit()
+        self.imp_tasti.setMaximumSequenceLength(1)
+        self.imp_tasti.setKeySequence(scorciatoia.tasti())
+        self.imp_tasti.setFixedWidth(180)
+        self.imp_tasti.editingFinished.connect(self._scorciatoia_nuova)
+        r.addWidget(self.imp_tasti)
+        b = bottone('Rimetti %s' % scorciatoia.PREDEFINITA)
+        b.clicked.connect(lambda: self._scorciatoia_salva(scorciatoia.PREDEFINITA))
+        r.addWidget(b)
+        r.addStretch(1)
+        l.addLayout(r)
+        self.imp_tasti_info = etichetta('Per cambiarla: clicca nella casella e premi i tasti nuovi (Ctrl o Alt + una '
+                                        'lettera, un numero o F1-F12).', 'tenue')
+        l.addWidget(self.imp_tasti_info)
+        lay.addWidget(f)
+
+        f, l = scheda()
         l.addWidget(etichetta('Sostieni il progetto', 'nome'))
         l.addWidget(etichetta('La mod e il programma sono gratis e lo resteranno. Le voci italiane costano: se vuoi dare '
                               'una mano per le mappe nuove, puoi lasciare una donazione libera su Ko-fi.', 'tenue'))
@@ -1729,6 +1810,35 @@ class Finestra(QMainWindow):
 
     def _dona(self):
         QDesktopServices.openUrl(QUrl(rete.KOFI))
+
+    def _scorciatoia_onoff(self, on):
+        cfg = percorsi.leggi_config()
+        cfg['scorciatoia'] = bool(on)
+        percorsi.salva_config(cfg)
+        self.imp_tasti.setEnabled(bool(on))
+        if on and percorsi.gioco_in_esecuzione():
+            scorciatoia.avvia_compagno()
+
+    def _scorciatoia_nuova(self):
+        t = self.imp_tasti.keySequence().toString(QKeySequence.PortableText)
+        if t:
+            self._scorciatoia_salva(t)
+
+    def _scorciatoia_salva(self, t):
+        if not scorciatoia.valida(t):
+            self.imp_tasti_info.setText('"%s" non va bene: serve Ctrl o Alt + una lettera, un numero o F1-F12 '
+                                        '(i tasti da soli li usa il gioco).' % t)
+            self.imp_tasti.setKeySequence(scorciatoia.tasti())
+            return
+        if t != scorciatoia.tasti() and not percorsi.gioco_in_esecuzione() and not scorciatoia.libera(t):
+            self.imp_tasti_info.setText('%s la usa gia\' un altro programma: scegline un\'altra.' % t)
+            self.imp_tasti.setKeySequence(scorciatoia.tasti())
+            return
+        cfg = percorsi.leggi_config()
+        cfg['scorciatoia_tasti'] = t
+        percorsi.salva_config(cfg)
+        self.imp_tasti.setKeySequence(t)
+        self.imp_tasti_info.setText('\u2714 Scorciatoia salvata: %s. Vale subito, anche a gioco aperto.' % t)
 
     def _aggiorna_impostazioni_programma(self):
         nuova = programma.disponibile(self.c_online)
