@@ -281,8 +281,85 @@ class Finestra(QMainWindow):
                 self._aperto_contribuisci = True
                 self._vai_a(6)
             else:
-                self._popup_contribuisci()
+                self._avvisi()
             self._proponi_controllo()
+
+    # ---------------- avvisi all'avvio: tutto quello che non va, con il tasto per sistemarlo ----------------
+    def _problemi(self):
+        """[(testo, nome_tasto, funzione)]"""
+        out = []
+        if not self.gioco:
+            return [('Non trovo il gioco sul PC: indicami la cartella.', 'Indica la cartella', lambda: self._vai_a(7))]
+        try:
+            st = {c: installa.stato_componente(self.dz(), c, self.sorgente)[0] for c in ('testo', 'audio')}
+            if all(v == 'non installato' for v in st.values()):
+                out.append(('La traduzione non e\' installata.', 'Installa', lambda: (self._vai_a(1), self._scarica_installa())))
+            elif self.manifest:
+                conf = aggiornamenti.confronta(self.manifest, self.dz())
+                if any(v[2] == 'aggiornare' for v in conf.values()):
+                    out.append(('C\'e\' la versione %s della traduzione.' % self.manifest.get('versione'), 'Aggiorna',
+                                lambda: (self._vai_a(1), self._scarica_installa())))
+        except Exception:
+            pass
+        if not percorsi.mod_attiva(self.gioco):
+            out.append(('Le mod sono spente (gioco originale, va bene per l\'online).', 'Riaccendile',
+                        self._attiva_disattiva))
+        try:
+            sst, testo = avvio.stato_steam()
+            exe = programma.cartella_exe()
+            att = avvio.controllo_attivo(testo)
+            if sst in ('mancano', 'diverse'):
+                out.append(('Steam non avvia il gioco con le mod: le opzioni di avvio mancano.', 'Sistema',
+                            (lambda: self._controllo(True)) if exe else (lambda: self._steam(False))))
+            elif exe and att and os.path.normcase(att) != os.path.normcase(os.path.join(exe, programma.NOME_EXE)):
+                out.append(('Steam apre ancora il programma da una cartella vecchia.', 'Sistema',
+                            lambda: self._controllo(True)))
+        except Exception:
+            pass
+        d = (self.manifest or {}).get('da_doppiare')
+        if d and self.c_doc and contribuisci.serve_aiuto(self.c_doc, self.c_stato):
+            import time
+            oggi = time.strftime('%Y-%m-%d')
+            cfg = percorsi.leggi_config()
+            if cfg.get('avviso_doppiare') != oggi:              # al massimo una volta al giorno
+                cfg['avviso_doppiare'] = oggi
+                percorsi.salva_config(cfg)
+                n = (self.c_stato or {}).get('libere', d.get('numero', 0))
+                out.append(('%s da doppiare: contribuisci gratis per tutta la community!' %
+                            ('C\'e\' 1 battuta' if n == 1 else 'Ci sono %d battute' % n), 'Contribuisci',
+                            lambda: self._vai_a(6)))
+        return out
+
+    def _avvisi(self):
+        if getattr(self, '_avvisi_fatti', False):
+            return
+        self._avvisi_fatti = True
+        lista = self._problemi()
+        if not lista:
+            return
+        from PySide6.QtWidgets import QDialog
+        dlg = QDialog(self)
+        dlg.setWindowTitle('CotW Italiano')
+        dlg.setMinimumWidth(560)
+        lay = QVBoxLayout(dlg)
+        lay.setContentsMargins(22, 18, 22, 18)
+        lay.setSpacing(12)
+        lay.addWidget(etichetta('Da sistemare' if len(lista) > 1 or lista[0][1] != 'Contribuisci' else 'Ti va di aiutare?',
+                                'titolo'))
+        for testo, tasto, fz in lista:
+            r = QHBoxLayout()
+            r.addWidget(etichetta(testo), 1)
+            b = bottone(tasto, 'primario')
+            b.clicked.connect(lambda _=False, f=fz: (dlg.accept(), QTimer.singleShot(100, f)))
+            r.addWidget(b)
+            lay.addLayout(r)
+        r = QHBoxLayout()
+        r.addStretch(1)
+        b = bottone('Chiudi')
+        b.clicked.connect(dlg.reject)
+        r.addWidget(b)
+        lay.addLayout(r)
+        dlg.exec()
 
     def _steam_spostato(self):
         """Il programma e' stato installato/spostato: Steam apre ancora quello vecchio. Si propone di sistemarlo.
@@ -296,17 +373,7 @@ class Finestra(QMainWindow):
                 avvio.sposta_collegamenti(vecchia, os.path.join(exe, programma.NOME_EXE))
             except Exception:
                 pass
-        try:
-            att = avvio.controllo_attivo(avvio.stato_steam()[1])
-        except Exception:
-            att = None
-        nuovo = os.path.join(exe, programma.NOME_EXE)
-        if att and os.path.normcase(att) != os.path.normcase(nuovo):
-            if QMessageBox.question(self, 'Avvio da Steam', 'Il programma adesso sta in una cartella nuova, ma Steam apre '
-                                    'ancora quello vecchio quando premi Gioca.\n\nSistemo io?'
-                                    ) == QMessageBox.Yes:
-                self._controllo(True)
-        if vecchia:
+        if vecchia:                           # (Steam che apre la cartella vecchia: lo dice la finestra degli avvisi)
             try:
                 r = programma.pulisci_cartella_vecchia()
                 if r and r[1]:
@@ -732,6 +799,8 @@ class Finestra(QMainWindow):
         def errore(e):
             self.errore_online, self.controllato = e, True
             self.aggiorna_tutto()
+            if not self._tutorial_attivo:            # senza internet: gli avvisi del PC si mostrano lo stesso
+                self._avvisi()
             if mostra:
                 self._messaggio('Aggiornamenti', e, 'avviso')
         th.fatto.connect(fatto)
