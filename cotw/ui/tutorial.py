@@ -8,33 +8,25 @@ from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel,
 # pagina: indice della scheda (0 Home ... 7 Impostazioni) | bersaglio: nome dell'attributo della finestra (o None)
 PASSI = [
     dict(dal='0.5.2', pagina=0, bersaglio=None, titolo='Benvenuto in CotW Italiano!',
-         testo='Ti faccio vedere in un minuto dove sta tutto.\nPremi Avanti (o Salta se sai gia\' tutto).'),
+         testo='Un giro veloce di quello che conta. Premi Avanti.'),
     dict(dal='0.5.2', pagina=0, bersaglio='menu:0', titolo='Home',
-         testo='Lo stato della traduzione sul tuo PC. Qui c\'e\' anche il tasto per disattivare le mod prima di '
-               'giocare online.'),
-    dict(dal='0.5.2', pagina=1, bersaglio='i_scarica', titolo='1. Installa la traduzione',
-         testo='Il primo passo: "Scarica e installa" mette testo e voci italiane nel gioco.\nQuando esce un '
-               'aggiornamento scarica solo i file cambiati.'),
-    dict(dal='0.5.2', pagina=2, bersaglio='a_ctrl_on', titolo='2. Avvio del gioco',
-         testo='Attiva il "Controllo prima di giocare": quando premi Gioca su Steam controlla gli aggiornamenti e poi '
-               'fa partire il gioco con le mod. Cosi\' non devi piu\' aprire il programma.'),
-    dict(dal='0.5.2', pagina=3, bersaglio='menu:3', titolo='Salvataggi',
-         testo='Backup dei salvataggi e "Azzera missioni" per rigiocare la storia in italiano.'),
-    dict(dal='0.5.2', pagina=4, bersaglio='menu:4', titolo='Strumenti',
-         testo='Il volume del quad (solo quello che senti tu, non gli animali).'),
-    dict(dal='0.5.2', pagina=5, bersaglio='s_tipo', titolo='Hai trovato un errore?',
-         testo='Scegli Audio, Testo o Entrambi, scrivi la frase (se ti viene suggerita cliccala) e spiega '
-               'brevemente cosa non va. Arriva da sola sul Discord: piu\' ne mandi, meglio e\'!'),
-    dict(dal='0.5.2', pagina=6, bersaglio='c_banner', titolo='Contribuisci',
-         testo='Quando il gioco aggiunge battute nuove (o ne correggiamo qualcuna) puoi doppiarle tu, gratis, con un '
-               'account ElevenLabs. Il programma fa tutto il resto e il tuo nome finisce nei ringraziamenti.'),
-    dict(dal='0.5.2', pagina=7, bersaglio='menu:7', titolo='Impostazioni',
-         testo='Le cartelle del gioco e dei salvataggi, gli aggiornamenti del programma e il tasto per rivedere '
-               'questo tutorial.'),
-    dict(dal='0.5.2', pagina=None, bersaglio='b_discord', titolo='Community',
-         testo='Aiuto, novita\' e segnalazioni sul Discord. E se ti piace la mod, puoi sostenerla qui sotto.'),
+         testo='Da qui gestisci tutto: traduzione, aggiornamenti e mod accese o spente.'),
+    dict(dal='0.5.2', pagina=1, bersaglio='i_scarica', titolo='Installa',
+         testo='Premi "Scarica e installa": testo e voci italiane entrano nel gioco.'),
+    dict(dal='0.5.2', pagina=5, bersaglio='menu:5', titolo='Segnala errore',
+         testo='Qui ci aiuti a correggere la traduzione.\nVoce o scritta sbagliata? Due righe e arriva subito a noi.'),
+    dict(dal='0.5.2', pagina=6, bersaglio='menu:6', titolo='Contribuisci',
+         testo='Qui fai la differenza.\nBattute nuove dopo un aggiornamento del gioco? Le doppi tu, gratis, e le '
+               'sentono tutti i giocatori italiani.'),
+    dict(dal='0.5.2', pagina=2, bersaglio='a_ctrl_on', titolo='Avvio gioco',
+         testo='Attivalo: quando premi Gioca controlla gli aggiornamenti e parte con le mod.'),
+    dict(dal='0.5.2', pagina=4, bersaglio='s_quad', titolo='Volume del quad',
+         testo='Abbassa il rumore del quad che senti tu.\nGli animali lo sentono come prima.'),
+    dict(dal='0.5.2', pagina=3, bersaglio='sv_azzera', titolo='Azzera le missioni',
+         testo='Rigiochi tutte le missioni in italiano senza perdere nessun altro progresso.\nPrima fa da solo il '
+               'backup dei salvataggi.'),
     dict(dal='0.0.0', pagina=0, bersaglio=None, titolo='Tutto pronto!',
-         testo='Buona caccia in italiano!\nIl tutorial lo rivedi quando vuoi da Impostazioni.'),
+         testo='Buona caccia in italiano!\nIl giro lo rivedi quando vuoi da Impostazioni.'),
 ]
 
 
@@ -73,6 +65,9 @@ class Tutorial(QWidget):
         self.l_titolo.setStyleSheet('font-size: 13pt; font-weight: bold; color: white;')
         self.l_testo = QLabel()
         self.l_testo.setWordWrap(True)
+        self.l_testo.setFixedWidth(380 - 36)          # larghezza fissa: l'altezza del fumetto si calcola giusta
+        self.l_titolo.setWordWrap(True)
+        self.l_titolo.setFixedWidth(380 - 36)
         self.l_testo.setStyleSheet('font-size: 10.5pt; color: #e3e6e8;')
         self.l_conta = QLabel()
         self.l_conta.setStyleSheet('font-size: 9pt; color: #9aa3a8;')
@@ -121,6 +116,10 @@ class Tutorial(QWidget):
             self.f._vai_a(p['pagina'])
         self.l_titolo.setText(p['titolo'])
         self.l_testo.setText(p['testo'])
+        for lab in (self.l_titolo, self.l_testo):          # altezza esatta del testo (a capo compresi)
+            lab.ensurePolished()
+            r = lab.fontMetrics().boundingRect(QRect(0, 0, lab.width(), 4000), Qt.TextWordWrap, lab.text())
+            lab.setFixedHeight(r.height() + 6)
         self.l_conta.setText('%d di %d' % (self.i + 1, len(self.passi)))
         self.b_indietro.setVisible(self.i > 0)
         ultimo = self.i == len(self.passi) - 1
@@ -139,8 +138,9 @@ class Tutorial(QWidget):
     def _posiziona(self):
         p = self.passi[self.i]
         w = self._bersaglio(p.get('bersaglio'))
+        self.fumetto.layout().activate()
         self.fumetto.adjustSize()
-        fw, fh = self.fumetto.width(), self.fumetto.sizeHint().height()
+        fw, fh = self.fumetto.width(), self.fumetto.height()
         if w is not None and w.isVisible():
             tl = w.mapTo(self.f, w.rect().topLeft())
             self.buco = QRect(tl, w.size()).adjusted(-8, -8, 8, 8)

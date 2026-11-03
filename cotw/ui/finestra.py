@@ -940,6 +940,7 @@ class Finestra(QMainWindow):
                               'spunta a Steam Cloud). Dopo: riattivalo e, se chiede, scegli i file LOCALI.', 'avviso'))
         r = QHBoxLayout()
         b = bottone('Azzera le missioni', 'pericolo')
+        self.sv_azzera = b
         b.clicked.connect(self._azzera)
         r.addWidget(b)
         r.addStretch(1)
