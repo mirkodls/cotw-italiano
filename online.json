@@ -1,15 +1,18 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.4",
-  "sha256": "82a712be293503a4f8c41143bb47fb1a928be464e32084278e52afebdc307104",
-  "dimensione": 32141107,
+  "versione": "0.5.5",
+  "sha256": "30d4a5c02d1edf90d29f2a1a71726147ba8354b1c7f6733a51e6da5f0c30468b",
+  "dimensione": 32210615,
   "novita": [
-   "Installazione automatica: chi aveva il programma estratto dallo zip ora lo installa per bene (cartella Programmi e icona sul desktop) e la cartella vecchia si cancella da sola",
-   "Se Steam e' aperto il programma lo chiude e lo riapre da solo per impostare l'avvio"
+   "Mentre giochi premi Ctrl+Alt+S: la finestra Segnala errore si apre sopra il gioco (scorciatoia modificabile in Impostazioni)",
+   "Avviso con la scorciatoia quando parte il gioco",
+   "Nuovo tasto Ringraziamenti: chi segnala errori e chi doppia le battute",
+   "All'avvio un avviso con tutto quello che va sistemato",
+   "Gioca chiede di contribuire quando ci sono battute da doppiare"
   ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.4/CotW_Italiano_0.5.4.zip",
-  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.4/CotW_Italiano_Setup_0.5.4.exe",
-  "setup_sha256": "8fe85aee2786d223aeefec45e8a1eda541fc80410f9e4a75e79de87ecf5abf7c"
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.5/CotW_Italiano_0.5.5.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.5/CotW_Italiano_Setup_0.5.5.exe",
+  "setup_sha256": "b6c95eeb7d51871b4577a310833319bd3516120fb0a7b46e6f764ec65f157726"
  }
 }
