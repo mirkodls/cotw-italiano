@@ -1,16 +1,17 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.6",
-  "sha256": "a6a248de65cb4810dd1bb324b15d837696c87e488adfbe08488eb558f456f53f",
-  "dimensione": 32219174,
+  "versione": "0.5.7",
+  "sha256": "18800cddf7321a15291408ff7054697508e1c5192e2e4fcdc133d8443318c70a",
+  "dimensione": 32257187,
   "novita": [
-   "Corretto: l'aggiornamento partito da Gioca restava fermo e il programma non si chiudeva",
-   "Corretto: Ctrl+Alt+S non funzionava durante la partita"
+   "SICUREZZA: il programma accetta solo aggiornamenti firmati digitalmente dall'autore (chiave Ed25519): se un file viene modificato da altri non viene installato",
+   "SICUREZZA: controllo dei nomi e dei percorsi dei file nei pacchetti scaricati",
+   "SICUREZZA (lato autore): chiavi di pubblicazione custodite in una cassaforte cifrata (AES-256-GCM) con password",
+   "Contribuisci: puoi scegliere quante battute doppiare o quanti crediti usare con due cursori"
   ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.6/CotW_Italiano_0.5.6.zip",
-  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.6/CotW_Italiano_Setup_0.5.6.exe",
-  "setup_sha256": "f890053c6a338c73d07211cdaa14010e9e6d97e1e818da801cc50c07d97bb465",
-  "firma": "817e6dc2a88a2ba3c7ba90c9328dc6b3149ee65b99a2d2722d9dbb7ab6fcea7d732a63984fb40c7af5833b00f08bafd8d60c52f0a7f57084ceb92593df9df305"
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.7/CotW_Italiano_0.5.7.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.7/CotW_Italiano_Setup_0.5.7.exe",
+  "setup_sha256": "887d0e522248c32c73e95dbc7c50501537c70b074cc703fe927cc1104615debc"
  }
 }
