@@ -1,9 +1,11 @@
 """Scaricamento da GitHub (Release del repository mirkodls/cotw-italiano).
-Tutto passa da qui: elenco versioni (versione.json) e pacchetti .zip. Verifica sempre l'impronta SHA-256."""
+Tutto passa da qui: elenco versioni (versione.json) e pacchetti .zip. Verifica sempre l'impronta SHA-256
+e la firma dell'autore su versione.json (cotw/core/firma.py)."""
 import os
 import json
 import hashlib
 import urllib.request
+from . import firma
 
 REPO = 'mirkodls/cotw-italiano'
 PAGINA = 'https://github.com/%s' % REPO
@@ -29,11 +31,35 @@ def sha256_file(percorso, blocco=1 << 20):
     return h.hexdigest()
 
 
+def _nome_file_ok(n):
+    return isinstance(n, str) and firma.percorso_sicuro(n) and '/' not in n
+
+
+def controlla_manifest(m):
+    """versione.json deve avere la firma dell'autore e solo percorsi/nomi di file normali (niente .. o C:)."""
+    firma.controlla(m, 'file delle versioni (versione.json)')
+    for comp in (m.get('componenti') or {}).values():
+        for rel in (comp.get('file') or {}):
+            if not firma.percorso_sicuro(rel):
+                raise firma.FirmaNonValida('Nella versione online c\'e\' un file con un percorso non valido: %s' % rel)
+        for p in comp.get('pacchetti') or []:
+            if not _nome_file_ok(p.get('nome')) or not _nome_file_ok(p.get('tag')):
+                raise firma.FirmaNonValida('Nella versione online c\'e\' un pacchetto con un nome non valido.')
+            if isinstance(p.get('contiene'), list) and not all(firma.percorso_sicuro(r) for r in p['contiene']):
+                raise firma.FirmaNonValida('Nella versione online c\'e\' un pacchetto con percorsi non validi.')
+    for k, v in m.items():
+        if isinstance(v, dict) and 'nome' in v and 'tag' in v:
+            if not _nome_file_ok(v.get('nome')) or not _nome_file_ok(v.get('tag')):
+                raise firma.FirmaNonValida('Nella versione online c\'e\' un file con un nome non valido (%s).' % k)
+    return m
+
+
 def leggi_manifest(timeout=20):
-    """Scarica versione.json. Restituisce il dizionario, oppure None se non c'e' ancora nessuna versione pubblicata."""
+    """Scarica versione.json e controlla la firma dell'autore.
+    Restituisce il dizionario, oppure None se non c'e' ancora nessuna versione pubblicata."""
     try:
         with urllib.request.urlopen(urllib.request.Request(url_manifest(), headers=_UA), timeout=timeout) as r:
-            return json.loads(r.read().decode('utf-8'))
+            return controlla_manifest(json.loads(r.read().decode('utf-8')))
     except urllib.error.HTTPError as e:
         if e.code == 404:
             return None

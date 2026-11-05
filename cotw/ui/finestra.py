@@ -77,14 +77,15 @@ class Doppiaggio(QThread):
     finito = Signal(int, str)
     errore = Signal(str)
 
-    def __init__(self, chiave, doc, chi):
+    def __init__(self, chiave, doc, chi, massimo=None):
         super().__init__()
-        self.chiave, self.doc, self.chi, self.stop = chiave, doc, chi, False
+        self.chiave, self.doc, self.chi, self.stop, self.massimo = chiave, doc, chi, False, massimo
 
     def run(self):
         try:
             n, motivo = contribuisci.doppia(self.chiave, self.doc, self.chi,
-                                            lambda a, b, t: self.avanzamento.emit(a, b, t), lambda: self.stop)
+                                            lambda a, b, t: self.avanzamento.emit(a, b, t), lambda: self.stop,
+                                            self.massimo)
             self.finito.emit(n, motivo)
         except Exception as e:
             traceback.print_exc()
@@ -1549,6 +1550,18 @@ class Finestra(QMainWindow):
         l.addLayout(r)
         l.addWidget(etichetta('Il programma prenota un gruppo di battute (cosi\' nessun altro fa le stesse), le genera '
                               'con i tuoi crediti e le manda una alla volta. Puoi fermarti quando vuoi.', 'tenue'))
+        self.c_cr_tot = None                                # crediti disponibili (None = non letti)
+        self.c_sl_bat_l = etichetta('', 'tenue')
+        l.addWidget(self.c_sl_bat_l)
+        self.c_sl_bat = QSlider(Qt.Horizontal)
+        self.c_sl_bat.valueChanged.connect(lambda v: self._c_slider('bat', v))
+        l.addWidget(self.c_sl_bat)
+        self.c_sl_cr_l = etichetta('', 'tenue')
+        l.addWidget(self.c_sl_cr_l)
+        self.c_sl_cr = QSlider(Qt.Horizontal)
+        self.c_sl_cr.valueChanged.connect(lambda v: self._c_slider('cr', v))
+        l.addWidget(self.c_sl_cr)
+        self._c_sync = False
         r = QHBoxLayout()
         self.c_via = bottone('Doppia le battute', 'primario')
         self.c_via.clicked.connect(self._c_doppia)
@@ -1609,6 +1622,7 @@ class Finestra(QMainWindow):
             self.c_barra_tot.show()
             if not lavora:
                 self.c_via.setEnabled(bool(libere))
+            self._c_aggiorna_slider()
         self.c_passi.setEnabled(True)                   # account e chiave si preparano anche quando non c'e' niente
         if not doc and not lavora:
             self.c_via.setEnabled(False)
@@ -1630,6 +1644,54 @@ class Finestra(QMainWindow):
         if r == QMessageBox.Yes:
             self._vai_a(6)
 
+    def _c_limiti(self):
+        """(massimo battute scegliibili, crediti per battuta, crediti usabili o None)."""
+        libere = (self.c_stato or {}).get('libere', len((self.c_doc or {}).get('battute', [])))
+        medio = contribuisci.costo_medio(self.c_doc)
+        mx = max(1, min(libere or 1, contribuisci.MAX_PER_GIRO))
+        if self.c_cr_tot is not None:
+            mx = max(1, min(mx, (self.c_cr_tot - contribuisci.MARGINE) // medio))
+        return mx, medio
+
+    def _c_aggiorna_slider(self):
+        if not self.c_doc:
+            return
+        mx, medio = self._c_limiti()
+        self._c_sync = True
+        v = min(max(self.c_sl_bat.value(), 1), mx) if getattr(self, '_c_sl_pronto', False) else mx
+        self._c_sl_pronto = True
+        self.c_sl_bat.setRange(1, mx)
+        self.c_sl_bat.setValue(v)
+        self.c_sl_cr.setRange(medio, mx * medio)
+        self.c_sl_cr.setSingleStep(medio)
+        self.c_sl_cr.setValue(v * medio)
+        self.c_sl_cr.setEnabled(mx > 1)
+        self.c_sl_bat.setEnabled(mx > 1)
+        self._c_sync = False
+        self._c_slider_testi()
+
+    def _c_slider(self, quale, v):
+        if self._c_sync or not self.c_doc:
+            return
+        medio = contribuisci.costo_medio(self.c_doc)
+        self._c_sync = True
+        if quale == 'bat':
+            self.c_sl_cr.setValue(v * medio)
+        else:
+            self.c_sl_bat.setValue(max(1, round(v / medio)))
+        self._c_sync = False
+        self._c_slider_testi()
+
+    def _c_slider_testi(self):
+        n = self.c_sl_bat.value()
+        medio = contribuisci.costo_medio(self.c_doc)
+        mx = self.c_sl_bat.maximum()
+        self.c_sl_bat_l.setText('Battute da doppiare: %d%s' % (n, ' (tutte quelle possibili)' if n == mx else ''))
+        extra = ''
+        if self.c_cr_tot is not None:
+            extra = ' su %s che hai' % '{:,}'.format(self.c_cr_tot).replace(',', '.')
+        self.c_sl_cr_l.setText('Crediti che spendi: circa %s%s' % ('{:,}'.format(n * medio).replace(',', '.'), extra))
+
     def _c_controlla(self):
         k = self.c_chiave.text().strip()
         if not k:
@@ -1644,6 +1706,8 @@ class Finestra(QMainWindow):
                 contribuisci.salva_chiave(k)
             else:
                 contribuisci.dimentica_chiave()
+            self.c_cr_tot = c
+            self._c_aggiorna_slider()
             if c is None:
                 self.c_crediti.setText('Chiave valida. (Non posso leggere i crediti: va bene lo stesso.)')
             else:
@@ -1666,7 +1730,7 @@ class Finestra(QMainWindow):
         percorsi.salva_config(cfg)
         if self.c_ricorda.isChecked():
             contribuisci.salva_chiave(k)
-        th = Doppiaggio(k, self.c_doc, nome or 'Anonimo')
+        th = Doppiaggio(k, self.c_doc, nome or 'Anonimo', self.c_sl_bat.value())
         self.c_lavoro = th
         self.c_via.setEnabled(False)
         self.c_ferma.show()

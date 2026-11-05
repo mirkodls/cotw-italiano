@@ -1,5 +1,6 @@
 """Aggiornamento del programma stesso (l'exe).
-La versione nuova e' scritta in online.json del repository (la aggiorna da sola la costruzione automatica su GitHub):
+La versione nuova e' scritta in online.json del repository (la aggiorna da sola la costruzione automatica su GitHub,
+poi l'autore la FIRMA con l'app amministratore: senza firma valida il programma non si aggiorna):
   "programma": {"versione": "0.4.0", "url": "https://github.com/.../CotW_Italiano_0.4.0.zip", "sha256": "...",
                 "dimensione": 123, "novita": ["..."]}
 Aggiornare: scarica lo zip in %APPDATA%\\CotW Italiano\\aggiornamento, controlla l'impronta, lo estrae, poi un piccolo
@@ -10,7 +11,7 @@ import sys
 import shutil
 import zipfile
 import subprocess
-from . import percorsi, rete
+from . import percorsi, rete, firma
 from .. import VERSIONE
 
 NOME_EXE = 'CotW Italiano.exe'
@@ -38,9 +39,11 @@ def installato():
 
 
 def disponibile(online):
-    """Dati della versione nuova se e' piu' recente di questa, altrimenti None."""
+    """Dati della versione nuova se e' piu' recente di questa, altrimenti None.
+    Dalla 0.5.7 il blocco "programma" di online.json deve avere la firma dell'autore: senza firma valida
+    l'aggiornamento non viene proposto (nessuno puo' far installare un programma diverso)."""
     p = (online or {}).get('programma') or {}
-    if p.get('versione') and p.get('url') and _num(p['versione']) > _num(VERSIONE):
+    if p.get('versione') and p.get('url') and _num(p['versione']) > _num(VERSIONE) and firma.firmato(p):
         return p
     return None
 

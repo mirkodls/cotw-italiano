@@ -16,7 +16,7 @@ import os
 import json
 import shutil
 import zipfile
-from . import percorsi, rete, installa
+from . import percorsi, rete, installa, firma
 
 
 def cartella_cache():
@@ -140,7 +140,7 @@ def aggiorna_cache(manifest, comp, avanzamento=None, fermati=None, dz=None):
             membri = [m for m in z.namelist() if m.startswith('dropzone/') and not m.endswith('/')]
             for i, m in enumerate(membri):
                 rel = m[len('dropzone/'):]
-                if rel not in voce['file'] or rel not in servono:
+                if rel not in voce['file'] or rel not in servono or not firma.percorso_sicuro(rel):
                     continue
                 out = os.path.join(radice, *rel.split('/'))
                 os.makedirs(os.path.dirname(out), exist_ok=True)

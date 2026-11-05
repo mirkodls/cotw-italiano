@@ -201,13 +201,21 @@ def serve_aiuto(doc, st):
     return st.get('libere', 1) > 0
 
 
-def doppia(chiave, doc, chi, avanzamento=None, fermati=None):
-    """Prenota, genera e consegna. Restituisce (fatte, motivo_fine)."""
+def costo_medio(doc):
+    """Crediti (caratteri) di una battuta in media."""
+    b = (doc or {}).get('battute') or []
+    return max(1, sum(len(x['testo']) for x in b) // max(1, len(b)))
+
+
+def doppia(chiave, doc, chi, avanzamento=None, fermati=None, massimo=None):
+    """Prenota, genera e consegna. massimo = quante battute al piu' (scelte dall'utente). Restituisce (fatte, motivo_fine)."""
     post = _postino()
     per_id = {b['id']: b for b in doc['battute']}
     cr = crediti(chiave)
     medio = max(1, sum(len(b['testo']) for b in doc['battute']) // max(1, len(doc['battute'])))
     quante = MAX_PER_GIRO if cr is None else min(MAX_PER_GIRO, max(0, (cr - MARGINE) // medio))
+    if massimo is not None:
+        quante = min(quante, max(1, int(massimo)))
     if quante < 1:
         return 0, 'Sul tuo account non ci sono abbastanza crediti questo mese.'
     pren = _post(post + '/contributi/prenota', {'chi': chi, 'quante': quante})
