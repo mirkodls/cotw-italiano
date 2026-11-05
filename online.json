@@ -10,6 +10,7 @@
   ],
   "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.6/CotW_Italiano_0.5.6.zip",
   "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.6/CotW_Italiano_Setup_0.5.6.exe",
-  "setup_sha256": "f890053c6a338c73d07211cdaa14010e9e6d97e1e818da801cc50c07d97bb465"
+  "setup_sha256": "f890053c6a338c73d07211cdaa14010e9e6d97e1e818da801cc50c07d97bb465",
+  "firma": "817e6dc2a88a2ba3c7ba90c9328dc6b3149ee65b99a2d2722d9dbb7ab6fcea7d732a63984fb40c7af5833b00f08bafd8d60c52f0a7f57084ceb92593df9df305"
  }
 }
