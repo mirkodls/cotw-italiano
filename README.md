@@ -31,6 +31,16 @@ Non serve installare altro. Il programma **si aggiorna da solo**: quando esce un
 
 ⚠️ **Prima di giocare online disattiva le mod** (tasto in Home).
 
+## 🔒 Sicurezza
+
+- **Aggiornamenti firmati** (dalla 0.5.7): il programma installa solo aggiornamenti con la firma digitale dell'autore (Ed25519). Se qualcuno modifica un file online, il programma lo rifiuta.
+- **Controllo di ogni file**: ogni pacchetto scaricato viene verificato con la sua impronta SHA-256; i nomi e i percorsi dei file vengono controllati prima di estrarli.
+- **Chiavi dell'autore protette**: le chiavi usate per pubblicare sono custodite in una cassaforte cifrata (AES-256-GCM) con password.
+- **Codice aperto**: tutto il codice del programma è in questo repository. Le impronte SHA-256 di ogni versione sono nella pagina della versione.
+- Scarica il programma **solo da questa pagina GitHub** (o dalla pagina ufficiale su Nexus Mods).
+
+Nessun software è sicuro al 100%: se noti qualcosa di strano, segnalalo su Discord.
+
 ## Community
 
 - Discord (novità, aiuto, segnalazioni): https://discord.gg/xPgHkstTDn
