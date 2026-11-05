@@ -1,0 +1,41 @@
+name: Carica su Nexus un programma gia' pubblicato
+
+# Prende l'installer GIA' pubblicato su GitHub (stesso identico file, stessa impronta SHA-256)
+# e lo carica su Nexus Mods. Non costruisce niente e non cambia la versione su GitHub.
+on:
+  workflow_dispatch:
+    inputs:
+      versione:
+        description: "Versione del programma gia' pubblicata (es. 0.5.7)"
+        required: true
+
+env:
+  NEXUS_FILE_ID: "8269233"
+
+permissions:
+  contents: read
+
+jobs:
+  nexus:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica l'installer dalla versione su GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ inputs.versione }}
+        run: |
+          gh release download "programma-v$V" -R "$GITHUB_REPOSITORY" -p "CotW_Italiano_Setup_$V.exe"
+          sha256sum "CotW_Italiano_Setup_$V.exe"
+          zip -9 "CotW_Italiano_Setup_$V.zip" "CotW_Italiano_Setup_$V.exe"
+
+      - name: Carica su Nexus Mods
+        uses: Nexus-Mods/upload-action@v1.0.0-beta.11
+        with:
+          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
+          file_id: ${{ env.NEXUS_FILE_ID }}
+          filename: CotW_Italiano_Setup_${{ inputs.versione }}.zip
+          version: ${{ inputs.versione }}
+          display_name: CotW Italiano - programma ${{ inputs.versione }}
+          description: "Programma per installare e aggiornare traduzione e doppiaggio italiani. Si aggiorna da solo (aggiornamenti firmati dall'autore). Codice sorgente: https://github.com/mirkodls/cotw-italiano"
+          category: main
+          archive_existing_version: false
