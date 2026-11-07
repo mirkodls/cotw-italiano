@@ -1,19 +1,17 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.7",
-  "sha256": "18800cddf7321a15291408ff7054697508e1c5192e2e4fcdc133d8443318c70a",
-  "dimensione": 32257187,
+  "versione": "0.5.8",
+  "sha256": "07a25e767a05289508ddf10301991b4cba0e3154c5b841f972406dc6a27a9622",
+  "dimensione": 32257908,
   "novita": [
-   "SICUREZZA: il programma accetta solo aggiornamenti firmati digitalmente dall'autore (chiave Ed25519): se un file viene modificato da altri non viene installato",
-   "SICUREZZA: controllo dei nomi e dei percorsi dei file nei pacchetti scaricati",
-   "SICUREZZA (lato autore): chiavi di pubblicazione custodite in una cassaforte cifrata (AES-256-GCM) con password",
-   "Contribuisci: puoi scegliere quante battute doppiare o quanti crediti usare con due cursori"
+   "SICUREZZA: anche l'indirizzo del servizio segnalazioni e contributi e' firmato dall'autore (nessuno puo' dirottare segnalazioni e audio)",
+   "SICUREZZA (servizio segnalazioni): confronto della password admin a tempo costante",
+   "Documentazione: sezioni Code signing policy e Privacy nel README"
   ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.7/CotW_Italiano_0.5.7.zip",
-  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.7/CotW_Italiano_Setup_0.5.7.exe",
-  "setup_sha256": "887d0e522248c32c73e95dbc7c50501537c70b074cc703fe927cc1104615debc",
-  "firma": "eb411684a64fac44407da827f8f3e7d62a43cdac48b749a9eabd83fe0d63a0022d5b3da7020b4a8d8740afbba90e2d7223b1964e7bce9892db574099c5beef08"
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.8/CotW_Italiano_0.5.8.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.8/CotW_Italiano_Setup_0.5.8.exe",
+  "setup_sha256": "ccc151e472b54cb7be30ea20d1d2a4e6a7e567a56fb33ce0575a9aad08a667bb"
  },
  "servizi": {
   "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
