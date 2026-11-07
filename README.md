@@ -23,6 +23,27 @@ Non serve installare altro. Il programma **si aggiorna da solo**: quando esce un
 > Se Windows mostra "PC protetto da Windows" è normale per un programma nuovo: *Ulteriori informazioni* → *Esegui comunque*.
 > L'exe non viene costruito sul PC dell'autore ma **automaticamente da GitHub** a partire da questo codice (vedi *Actions*), e nella pagina della versione c'è l'impronta SHA-256 per controllarlo.
 
+## 🆕 Novità
+
+**0.5.11**
+- Nuovo tasto **▶ GIOCA** nella Home: controlla gli aggiornamenti, avvia il gioco con la traduzione e chiude il programma.
+- Mentre è aperto, il programma controlla gli aggiornamenti **ogni 5 minuti**.
+- Se premi qualcosa mentre il programma sta lavorando, la mette **in coda** e la fa appena finisce.
+- Gioco **senza Steam**: crea l'icona sul desktop con mod e controllo prima di giocare, toglie le vecchie icone senza mod (nel Cestino) e avvia il gioco come amministratore.
+- A ogni avvio del gioco chiede se vuoi **contribuire al doppiaggio**, se ci sono battute da fare.
+
+**0.5.10**
+- **Correzione certificati**: su alcuni PC il programma non riusciva a collegarsi a GitHub e non si aggiornava da solo. Ora porta con sé i suoi certificati.
+
+**0.5.9**
+- **Strumenti → Prova la connessione**: se il programma non vede gli aggiornamenti, ti dice cosa blocca (firewall, antivirus, DNS, proxy, ora del PC) con un rapporto da copiare.
+
+**0.5.8**
+- Sicurezza: anche l'indirizzo del servizio segnalazioni e contributi è firmato dall'autore.
+
+**0.5.7**
+- Sicurezza: aggiornamenti firmati digitalmente; controllo dei percorsi nei pacchetti.
+
 ## Cosa fa
 
 - **Traduzione e doppiaggio**: installa testo e voci italiane insieme o separati, controllando l'integrità di ogni file. Scarica solo quello che cambia.
