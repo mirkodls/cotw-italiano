@@ -113,8 +113,7 @@ LIMITE_ORA = 40         # solo contro lo spam: oltre, si mette in coda (non si p
 def _postino():
     """Indirizzo del postino (Cloudflare Worker) scritto in online.json del repository. Non e' un segreto:
     il segreto (il webhook del canale) sta solo nelle impostazioni del Worker."""
-    u = rete.leggi_online().get('postino')
-    return u if isinstance(u, str) and u.startswith(('https://', 'http://127.0.0.1')) else None
+    return rete.postino()
 
 
 def _file(nome):

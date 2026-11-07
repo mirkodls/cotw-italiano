@@ -164,8 +164,16 @@ async function contributi(req, env, url, ip) {
   return risposta({ errore: 'sconosciuto' }, 404);
 }
 
+// Confronto "a tempo costante": il tempo non dipende da quanti caratteri sono giusti (niente indizi sulla password).
+function ugualiSicuro(a, b) {
+  const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b);
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] || 0) ^ (y[i] || 0);
+  return diff === 0;
+}
+
 async function admin(req, env, url) {
-  if (!env.ADMIN || req.headers.get('X-Admin') !== env.ADMIN) return risposta({ errore: 'password' }, 403);
+  if (!env.ADMIN || !ugualiSicuro(req.headers.get('X-Admin') || '', env.ADMIN)) return risposta({ errore: 'password' }, 403);
   if (!env.DEPOSITO) return risposta({ errore: 'deposito non configurato' }, 503);
   const parte = url.pathname.replace(/^\/admin\/?/, '');
   if (parte === 'audio' && req.method === 'GET') {

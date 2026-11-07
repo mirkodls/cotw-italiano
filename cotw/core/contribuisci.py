@@ -153,10 +153,10 @@ def elenco(manifest):
 
 
 def _postino():
-    u = rete.leggi_online().get('postino')
-    if not (isinstance(u, str) and u.startswith(('https://', 'http://127.0.0.1'))):
+    u = rete.postino()
+    if not u:
         raise RuntimeError('Il servizio dei contributi non e\' disponibile in questo momento.')
-    return u.rstrip('/')
+    return u
 
 
 def _post(url, corpo=None, dati=None, timeout=30):

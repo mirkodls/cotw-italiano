@@ -114,6 +114,17 @@ def leggi_online(timeout=15):
         return {}
 
 
+def postino(online=None):
+    """Indirizzo del postino (Cloudflare Worker). Dalla 0.5.8 si legge dal blocco "servizi" di online.json, che deve
+    avere la firma dell'autore: cosi' nessuno puo' dirottare segnalazioni e contributi su un altro server.
+    None se manca o non e' firmato (le segnalazioni restano in coda sul PC)."""
+    s = (online if online is not None else leggi_online()).get('servizi')
+    if not isinstance(s, dict) or not firma.firmato(s):
+        return None
+    u = s.get('postino')
+    return u.rstrip('/') if isinstance(u, str) and u.startswith(('https://', 'http://127.0.0.1')) else None
+
+
 class Occupato(RuntimeError):
     """Il postino ha ricevuto troppe segnalazioni in poco tempo: si riprova piu' tardi da soli."""
 
