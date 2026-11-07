@@ -14,7 +14,7 @@ from .. import VERSIONE
 
 APP_ID = '518790'
 ATTESA_MAX = 4000          # millisecondi: oltre, si gioca senza aspettare
-RECENTE = 30 * 60          # controllato da meno di 30 minuti (anche dal programma): il gioco parte subito
+RECENTE = 30 * 60          # (non piu' usato per saltare il controllo: ora si controlla a ogni avvio)
 
 
 def _file_ultimo():
@@ -36,12 +36,34 @@ def segna_controllo():
         pass
 
 
+def _senza_steam(exe):
+    """True se e' l'exe del gioco e su questo PC non c'e' Steam (gioco senza launcher)."""
+    try:
+        from ..core import avvio
+        return os.path.basename(exe).lower() == percorsi.EXE_GIOCO.lower() and not avvio.file_config_steam()
+    except Exception:
+        return False
+
+
+def _come_amministratore(exe, argomenti):
+    """Avvia come amministratore (Windows chiede la conferma). Se l'utente dice no, prova normale."""
+    import ctypes
+    par = subprocess.list2cmdline(argomenti)
+    r = ctypes.windll.shell32.ShellExecuteW(None, 'runas', exe, par, os.path.dirname(exe), 1)
+    if r <= 32:
+        subprocess.Popen([exe] + list(argomenti), cwd=os.path.dirname(exe), close_fds=True,
+                         creationflags=0x00000008 | 0x00000200)
+
+
 def avvia_gioco(comando):
     """comando = quello che Steam mette al posto di %command% (+ le opzioni). Vuoto = fai partire il gioco da Steam."""
     if comando:
         exe = comando[0]
-        subprocess.Popen(comando, cwd=os.path.dirname(exe) if os.path.isfile(exe) else None,
-                         creationflags=0x00000008 | 0x00000200 if sys.platform == 'win32' else 0, close_fds=True)
+        if sys.platform == 'win32' and _senza_steam(exe):
+            _come_amministratore(exe, comando[1:])         # gioco senza launcher: parte come amministratore
+        else:
+            subprocess.Popen(comando, cwd=os.path.dirname(exe) if os.path.isfile(exe) else None,
+                             creationflags=0x00000008 | 0x00000200 if sys.platform == 'win32' else 0, close_fds=True)
     else:
         QDesktopServices.openUrl(QUrl('steam://rungameid/' + APP_ID))
     scorciatoia.avvia_compagno()          # scorciatoia Segnala finche' giochi (se c'e' gia', il nuovo esce)
@@ -139,15 +161,11 @@ class PrimaDiGiocare(QDialog):
             except Exception:
                 self.da_agg = []
         self.prog = programma.disponibile(o) if programma.cartella_exe() else None
-        self.contr = None                       # battute da doppiare (nuove o corrette): una volta per versione
+        self.contr = None                       # battute da doppiare: lo chiede OGNI volta che si gioca (se ce ne sono)
         d = (m or {}).get('da_doppiare')
         st = self.th.stato
         if d and programma.cartella_exe() and contribuisci.serve_aiuto({'versione': (st or {}).get('versione', d.get('tag'))}, st):
-            cfg = percorsi.leggi_config()
-            if cfg.get('popup_contribuisci_gioco') != d.get('tag'):
-                cfg['popup_contribuisci_gioco'] = d.get('tag')
-                percorsi.salva_config(cfg)
-                self.contr = d
+            self.contr = d
         if not self.da_agg and not self.prog and not self.contr:
             return self._gioca()
         righe = []
@@ -232,9 +250,6 @@ def esegui(argv):
     i = argv.index('--gioco')
     comando = argv[i + 1:]
     if percorsi.gioco_in_esecuzione():
-        return 0
-    if controllo_recente():
-        avvia_gioco(comando)
         return 0
     d = PrimaDiGiocare(comando)
     d.exec()

@@ -283,7 +283,22 @@ def crea_collegamento(gioco, nome='theHunter COTW con mod', programma_exe=None):
                        capture_output=True, text=True, creationflags=0x08000000)
     if r.returncode != 0 or not os.path.isfile(lnk):
         raise RuntimeError('Non sono riuscito a creare il collegamento: ' + (r.stderr or '').strip()[:300])
+    if not programma_exe and not file_config_steam():
+        _esegui_come_amministratore(lnk)      # gioco senza launcher: l'icona lo apre come amministratore
     return lnk
+
+
+def _esegui_come_amministratore(lnk):
+    """Spunta "Esegui come amministratore" nel collegamento (flag RunAsUser 0x2000 nel campo LinkFlags)."""
+    try:
+        with open(lnk, 'r+b') as f:
+            b = bytearray(f.read(24))
+            if len(b) >= 24 and b[:4] == b'\x4c\x00\x00\x00':
+                b[21] |= 0x20
+                f.seek(21)
+                f.write(bytes([b[21]]))
+    except OSError:
+        pass
 
 
 def _desktop():
