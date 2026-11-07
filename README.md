@@ -16,6 +16,10 @@ _Preferisci senza installer? Nella [pagina della versione](https://github.com/mi
 
 Non serve installare altro. Il programma **si aggiorna da solo**: quando esce una versione nuova te lo dice e fa tutto lui.
 
+> ⚠️ **Hai la 0.5.9 o una versione precedente e il programma non si aggiorna da solo?** Su alcuni PC Windows non aveva il certificato di sicurezza di GitHub e il programma non riusciva a scaricare l'aggiornamento ("Non raggiungibile" o "certificato non valido"). **Dalla 0.5.10 è risolto**: il programma porta con sé i suoi certificati. Basta **una volta** scaricare a mano il Setup 0.5.10 qui sopra e installarlo sopra la versione vecchia (le impostazioni restano). Poi torna ad aggiornarsi da solo.
+>
+> Problemi di connessione? **Strumenti → Prova la connessione**: ti dice cosa blocca (firewall, antivirus, DNS, proxy, ora del PC) e prepara un rapporto da incollare su Discord.
+
 > Se Windows mostra "PC protetto da Windows" è normale per un programma nuovo: *Ulteriori informazioni* → *Esegui comunque*.
 > L'exe non viene costruito sul PC dell'autore ma **automaticamente da GitHub** a partire da questo codice (vedi *Actions*), e nella pagina della versione c'è l'impronta SHA-256 per controllarlo.
 
@@ -41,6 +45,8 @@ Non serve installare altro. Il programma **si aggiorna da solo**: quando esce un
 
 Nessun software è sicuro al 100%: se noti qualcosa di strano, segnalalo su Discord.
 - **Indirizzo delle segnalazioni firmato** (dalla 0.5.8): anche l'indirizzo del servizio che riceve segnalazioni e contributi è firmato dall'autore. Nessuno può dirottarli.
+- **Certificati inclusi** (dalla 0.5.10): il programma verifica sempre l'identità di GitHub (HTTPS), anche sui PC dove a Windows manca qualche certificato radice.
+- **Antivirus**: alcuni antivirus segnalano per errore i programmi nuovi e non firmati ("falso positivo"). Il codice è tutto qui, l'exe è costruito da GitHub e ogni versione è segnalata a Microsoft per l'analisi. La firma del certificato (SignPath) è in richiesta.
 
 ### Code signing policy
 
