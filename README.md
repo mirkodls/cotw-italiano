@@ -40,6 +40,24 @@ Non serve installare altro. Il programma **si aggiorna da solo**: quando esce un
 - Scarica il programma **solo da questa pagina GitHub** (o dalla pagina ufficiale su Nexus Mods).
 
 Nessun software è sicuro al 100%: se noti qualcosa di strano, segnalalo su Discord.
+- **Indirizzo delle segnalazioni firmato** (dalla 0.5.8): anche l'indirizzo del servizio che riceve segnalazioni e contributi è firmato dall'autore. Nessuno può dirottarli.
+
+### Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+(Richiesta in corso: finché l'exe non è firmato, Windows SmartScreen può mostrare un avviso. Scegli "Ulteriori informazioni" → "Esegui comunque".)
+
+- **Team roles**: Committer and Reviewer: [Mirko Del Sette (mirkodls)](https://github.com/mirkodls). Approver: Mirko Del Sette. Il progetto è mantenuto da una sola persona: ogni contributo esterno (pull request) viene revisionato dall'autore prima di entrare nel codice; ogni richiesta di firma è approvata dall'autore.
+- **Build**: ogni exe è costruito automaticamente da GitHub Actions ([crea_exe.yml](.github/workflows/crea_exe.yml)) a partire dal codice di questo repository. Nessun binario viene costruito a mano.
+
+### Privacy
+
+Il programma non raccoglie dati personali e non ha pubblicità. Collegamenti in uscita:
+- **GitHub** (github.com, raw.githubusercontent.com): per controllare e scaricare gli aggiornamenti della traduzione, del doppiaggio e del programma.
+- **Servizio segnalazioni** (Cloudflare Worker dell'autore): solo quando l'utente invia una segnalazione o un contributo al doppiaggio. Viene inviato il testo della segnalazione (e il nome che l'utente sceglie di scrivere) oppure l'audio generato. L'indirizzo IP è visto dal servizio solo per limitare lo spam e non viene salvato.
+- **ElevenLabs** (api.elevenlabs.io): solo se l'utente sceglie di contribuire al doppiaggio con la PROPRIA chiave ElevenLabs. La chiave resta sul PC dell'utente (cifrata da Windows) e va solo a ElevenLabs.
+
+Non vengono inviati dati del gioco, dell'account Steam o del computer.
 
 ## Community
 
