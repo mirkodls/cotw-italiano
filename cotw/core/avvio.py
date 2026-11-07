@@ -300,6 +300,51 @@ def _desktop():
     return desktop
 
 
+def _desktop_pubblico():
+    return os.path.join(os.environ.get('PUBLIC', r'C:\Users\Public'), 'Desktop')
+
+
+def collegamenti_vecchi(gioco, tranne=None):
+    """Icone sul desktop (tuo e 'Pubblico') che aprono il gioco SENZA passare dal collegamento nuovo:
+    quelle dirette all'exe del gioco e i vecchi collegamenti di CotW Italiano. 'tranne' = quella appena creata."""
+    if not percorsi.IS_WIN:
+        return []
+    exe = os.path.join(gioco, percorsi.EXE_GIOCO).lower()
+    out = []
+    for d in (_desktop(), _desktop_pubblico()):
+        if not os.path.isdir(d):
+            continue
+        ps = ("$w=New-Object -ComObject WScript.Shell; Get-ChildItem -LiteralPath '{d}' -Filter *.lnk | ForEach-Object {{ "
+              "$s=$w.CreateShortcut($_.FullName); [Console]::WriteLine($_.FullName + '|' + $s.TargetPath + '|' + $s.Arguments) }}"
+              ).format(d=d.replace("'", "''"))
+        r = subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps],
+                           capture_output=True, text=True, encoding='utf-8', errors='replace', creationflags=0x08000000)
+        for riga in (r.stdout or '').splitlines():
+            parti = riga.split('|', 2)
+            if len(parti) < 2:
+                continue
+            lnk, bers, arg = parti[0], parti[1].lower(), (parti[2] if len(parti) > 2 else '').lower()
+            if tranne and os.path.normcase(lnk) == os.path.normcase(tranne):
+                continue
+            if bers == exe or (bers.endswith(percorsi.EXE_GIOCO.lower()) and 'thehunter' in bers) or \
+                    ('--gioco' in arg and percorsi.EXE_GIOCO.lower() in arg):
+                out.append(lnk)
+    return out
+
+
+def cestina(percorsi_file):
+    """Manda i file nel CESTINO (si possono recuperare). Restituisce quelli che non si sono potuti togliere."""
+    falliti = []
+    for f in percorsi_file:
+        ps = ("Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile("
+              "'{f}', 'OnlyErrorDialogs', 'SendToRecycleBin')").format(f=f.replace("'", "''"))
+        subprocess.run(['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps],
+                       capture_output=True, text=True, creationflags=0x08000000)
+        if os.path.exists(f):
+            falliti.append(f)
+    return falliti
+
+
 def sposta_collegamenti(vecchia, nuovo_exe):
     """I collegamenti sul desktop che aprivano il programma nella cartella vecchia ora aprono quello nuovo."""
     if not percorsi.IS_WIN:

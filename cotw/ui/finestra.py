@@ -1096,9 +1096,28 @@ class Finestra(QMainWindow):
                                         os.path.join(exe, programma.NOME_EXE) if exe else None)
             self._messaggio('Fatto', 'Icona creata sul desktop:\n%s\n\nApri il gioco da li\': %s' % (
                 p, 'prima controlla gli aggiornamenti, poi parte con le mod.' if exe else 'parte con le mod.'))
+            self._togli_vecchie_icone(p)
         except Exception as e:
             self._messaggio('Non riesco', str(e), 'errore')
         return True
+
+    def _togli_vecchie_icone(self, nuova):
+        try:
+            vecchie = avvio.collegamenti_vecchi(self.gioco, tranne=nuova)
+        except Exception:
+            return
+        if not vecchie:
+            return
+        if not self._conferma('Vecchie icone del gioco',
+                              'Sul desktop ci sono altre icone che aprono il gioco SENZA le mod (o senza il controllo):\n\n' +
+                              '\n'.join(os.path.basename(v) for v in vecchie) +
+                              '\n\nLe tolgo? Rimane solo quella nuova. (Vanno nel Cestino: si possono recuperare.)'):
+            return
+        falliti = avvio.cestina(vecchie)
+        if falliti:
+            self._messaggio('Non tutte', 'Queste non le ho potute togliere (servono i permessi di amministratore, sono '
+                                         'sul desktop di tutti gli utenti):\n\n' + '\n'.join(falliti) +
+                            '\n\nCancellale a mano.', 'avviso')
 
     def _collegamento(self):
         if not self.gioco:
@@ -1109,6 +1128,7 @@ class Finestra(QMainWindow):
             p = avvio.crea_collegamento(self.gioco, 'theHunter COTW in italiano' if exe else 'theHunter COTW con mod',
                                         os.path.join(exe, programma.NOME_EXE) if exe else None)
             self._messaggio('Fatto', 'Collegamento creato:\n%s' % p)
+            self._togli_vecchie_icone(p)
         except Exception as e:
             self._messaggio('Non riesco', str(e), 'errore')
 
