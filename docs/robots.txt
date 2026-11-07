@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://mirkodls.github.io/cotw-italiano/sitemap.xml

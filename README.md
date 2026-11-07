@@ -1,7 +1,9 @@
-# CotW Italiano
+# CotW Italiano — theHunter: Call of the Wild in italiano (traduzione e doppiaggio)
 
-Programma per installare e aggiornare la **traduzione italiana** (testo e doppiaggio) di **theHunter: Call of the Wild**.
-Di **Mirko Del Sette**.
+**La traduzione italiana completa di theHunter: Call of the Wild**: testi, menu, missioni, sottotitoli e **doppiaggio in italiano** per tutte le riserve. Gratis, con un programma che la installa e la tiene aggiornata da solo.
+Di **Mirko Del Sette**. Sito: **[mirkodls.github.io/cotw-italiano](https://mirkodls.github.io/cotw-italiano/)** · [Nexus Mods](https://www.nexusmods.com/thehuntercallofthewild/mods/1198) · [Discord](https://discord.gg/xPgHkstTDn)
+
+> 🇬🇧 *Italian translation and Italian dubbing mod for theHunter: Call of the Wild (PC). Free, open source, auto-updating installer. The game has no official Italian language: this mod adds Italian text (22,000+ lines) and Italian voice-over (6,000+ lines).*
 
 ## ⬇️ Scarica
 
@@ -85,6 +87,35 @@ Il programma non raccoglie dati personali e non ha pubblicità. Collegamenti in 
 - **ElevenLabs** (api.elevenlabs.io): solo se l'utente sceglie di contribuire al doppiaggio con la PROPRIA chiave ElevenLabs. La chiave resta sul PC dell'utente (cifrata da Windows) e va solo a ElevenLabs.
 
 Non vengono inviati dati del gioco, dell'account Steam o del computer.
+
+## ❓ Domande frequenti
+
+**Come si mette l'italiano in theHunter: Call of the Wild?**
+Il gioco ufficialmente non ha l'italiano. Scarica il programma **CotW Italiano** (sezione *Scarica* qui sopra), aprilo e premi **Installa → Scarica e installa**: mette testo e doppiaggio italiani nel gioco. Poi premi **▶ GIOCA**.
+
+**È gratis?**
+Sì, completamente gratis, senza pubblicità. Il codice del programma è open source.
+
+**C'è anche il doppiaggio in italiano?**
+Sì: oltre 6.000 battute dei personaggi doppiate in italiano (voci generate con intelligenza artificiale ElevenLabs e riviste a mano). Puoi installare solo i testi, solo le voci o tutti e due.
+
+**Quali riserve sono tradotte?**
+Tutte: oltre 22.000 frasi tra dialoghi, missioni, menu e interfaccia.
+
+**Funziona con la versione Steam? E senza Steam?**
+Con Steam imposta da solo le opzioni di avvio. Senza Steam crea un'icona sul desktop che avvia il gioco con la traduzione.
+
+**Modifica i file del gioco? Posso giocare online?**
+Non tocca i file originali: usa solo la cartella `dropzone`. Prima di giocare online disattiva le mod con il tasto in Home.
+
+**Quando esce un aggiornamento del gioco?**
+Il programma controlla da solo e scarica la traduzione aggiornata quando è pronta. Le frasi nuove vengono tradotte e doppiate anche con l'aiuto della community.
+
+**È sicuro? L'antivirus lo segnala.**
+Gli aggiornamenti sono firmati digitalmente e l'exe è costruito automaticamente da GitHub a partire da questo codice. Alcuni antivirus segnalano per errore i programmi nuovi senza certificato (falso positivo): vedi la sezione *Sicurezza*.
+
+**Ho trovato un errore nella traduzione.**
+Nel programma c'è **Segnala errore** (anche in partita con Ctrl+Alt+S). La correzione arriva a tutti con l'aggiornamento successivo.
 
 ## Community
 
