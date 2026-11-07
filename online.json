@@ -1,17 +1,19 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.10",
-  "sha256": "dddaeb01efb4371ed0c9d9489170dbec62286fd1bd6177e2b7109f807c3db83d",
-  "dimensione": 32786265,
+  "versione": "0.5.11",
+  "sha256": "fc472a4f5ccb912ac4ce74d653bb1836f5565d4dabdec4c90b39ebd24dc6af4c",
+  "dimensione": 32808150,
   "novita": [
-   "CORREZIONE: su alcuni PC il programma non si collegava a GitHub (errore certificato): ora porta con se' i certificati e funziona",
-   "Prova la connessione piu' precisa"
+   "Nuovo tasto GIOCA nella Home: controlla gli aggiornamenti, avvia il gioco con la traduzione e chiude il programma",
+   "Il programma controlla gli aggiornamenti ogni 5 minuti mentre e' aperto",
+   "Se premi qualcosa mentre il programma sta lavorando, la mette in coda e la fa appena finisce",
+   "Gioco senza Steam: crea l'icona sul desktop con mod e controllo, toglie le vecchie icone (nel Cestino) e avvia il gioco come amministratore",
+   "A ogni avvio del gioco chiede se vuoi contribuire, se ci sono battute da doppiare"
   ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.10/CotW_Italiano_0.5.10.zip",
-  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.10/CotW_Italiano_Setup_0.5.10.exe",
-  "setup_sha256": "dfc427b40ef15b31a7cf4c989102cf5177f1087a940592e36959afac15e50d0c",
-  "firma": "42ecba21eaeef558c06bfbaf8d8011bb68e520403088f7e57ec69b926e9481d7c7a85a19ead1e2a65f7a8785a6dfebe19a5a5698b6a7c01c27630b79e4bbdf00"
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.11/CotW_Italiano_0.5.11.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.11/CotW_Italiano_Setup_0.5.11.exe",
+  "setup_sha256": "e7bd4e03a2dba3ea0bf7122d838b39e707789a976725d86e6e5c071da9736393"
  },
  "servizi": {
   "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
