@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QComboBox, QMessageBox, QButtonGroup, QScrollArea, QSizePolicy,
                                QListWidget, QListWidgetItem, QInputDialog, QPlainTextEdit, QDialog, QKeySequenceEdit)
 
-from ..core import percorsi, installa, quad, missioni, avvio, rete, aggiornamenti, segnala, contribuisci, programma, \
+from ..core import percorsi, installa, quad, missioni, avvio, rete, aggiornamenti, segnala, contribuisci, programma, diagnosi, \
     scorciatoia
 from .. import VERSIONE
 from . import stile
@@ -754,7 +754,7 @@ class Finestra(QMainWindow):
         conf = aggiornamenti.confronta(m, self.dz()) if (m and self.gioco) else {}
         if self.errore_online:
             self._imposta(self.i_online, 'Non raggiungibile', 'attenzione')
-            self.i_novita.setText(self.errore_online)
+            self.i_novita.setText(self.errore_online + '  (Strumenti > Prova la connessione: ti dice cosa blocca)')
         elif m is None and self.controllato:
             self._imposta(self.i_online, 'Nessuna versione pubblicata ancora', 'tenue')
             self.i_novita.setText('')
@@ -1264,8 +1264,59 @@ class Finestra(QMainWindow):
         r.addWidget(self.l_quad_ora)
         l.addLayout(r)
         lay.addWidget(f)
+        f, l = scheda()
+        l.addWidget(etichetta('Connessione', 'nome'))
+        l.addWidget(etichetta('Il programma non vede gli aggiornamenti o non manda le segnalazioni? Questa prova controlla '
+                              'DNS, GitHub, il servizio delle segnalazioni, l\'ora del PC e il proxy, e ti dice cosa blocca.', 'tenue'))
+        r = QHBoxLayout()
+        b = bottone('Prova la connessione', 'primario')
+        b.clicked.connect(self._prova_connessione)
+        r.addWidget(b)
+        r.addStretch(1)
+        l.addLayout(r)
+        lay.addWidget(f)
         lay.addStretch(1)
         return area
+
+    def _prova_connessione(self):
+        if self.lavoro and self.lavoro.isRunning():
+            self._messaggio('Attendi', 'C\'e\' gia\' un\'operazione in corso.', 'avviso')
+            return
+        self.statusBar().showMessage('Provo la connessione...')
+        ris = {}
+
+        def lavoro(av):
+            ris['r'] = diagnosi.prova_rete(av)
+            ris['testo'] = diagnosi.rapporto(ris['r'])
+            return diagnosi.riassunto(ris['r'])
+
+        def mostra():
+            d = QDialog(self)
+            d.setWindowTitle('Prova della connessione')
+            d.resize(760, 520)
+            v = QVBoxLayout(d)
+            v.addWidget(etichetta(diagnosi.riassunto(ris['r']), 'nome'))
+            t = QPlainTextEdit(ris['testo'])
+            t.setReadOnly(True)
+            v.addWidget(t, 1)
+            r = QHBoxLayout()
+            b1 = bottone('Copia il rapporto', 'primario')
+            b1.clicked.connect(lambda: (QApplication.clipboard().setText(ris['testo']),
+                                        self.statusBar().showMessage('Rapporto copiato: incollalo su Discord.')))
+            b2 = bottone('Riprova gli aggiornamenti')
+            b2.clicked.connect(lambda: (d.accept(), self._controlla_online(True)))
+            b3 = bottone('Chiudi')
+            b3.clicked.connect(d.accept)
+            for b in (b1, b2, b3):
+                r.addWidget(b)
+            r.addStretch(1)
+            v.addLayout(r)
+            d.exec()
+
+        self.lavoro = Lavoro(lavoro)
+        self.lavoro.finito.connect(lambda _m: mostra())
+        self.lavoro.errore.connect(lambda e: self._messaggio('Prova non riuscita', e, 'errore'))
+        self.lavoro.start()
 
     def _aggiorna_strumenti(self):
         if self.gioco:
