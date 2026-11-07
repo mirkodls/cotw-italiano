@@ -1,18 +1,15 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.8",
-  "sha256": "07a25e767a05289508ddf10301991b4cba0e3154c5b841f972406dc6a27a9622",
-  "dimensione": 32257908,
+  "versione": "0.5.9",
+  "sha256": "5db7c9964a276d30e341ee7c8d4e52929187ec4c705e59760eb957ff8bc283c0",
+  "dimensione": 32286345,
   "novita": [
-   "SICUREZZA: anche l'indirizzo del servizio segnalazioni e contributi e' firmato dall'autore (nessuno puo' dirottare segnalazioni e audio)",
-   "SICUREZZA (servizio segnalazioni): confronto della password admin a tempo costante",
-   "Documentazione: sezioni Code signing policy e Privacy nel README"
+   "Strumenti > Prova la connessione: se il programma non vede gli aggiornamenti o non manda le segnalazioni, dice cosa blocca (firewall, antivirus, DNS, proxy, ora del PC) con un rapporto da copiare"
   ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.8/CotW_Italiano_0.5.8.zip",
-  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.8/CotW_Italiano_Setup_0.5.8.exe",
-  "setup_sha256": "ccc151e472b54cb7be30ea20d1d2a4e6a7e567a56fb33ce0575a9aad08a667bb",
-  "firma": "18a888dfc881c762d75b167ad79e3b866cc34f78282596cc7811268721fa479b5ca54aeae4701d5e7a7a9277c6baec0850000bf5f17be8e600aad8966edd1d0f"
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.9/CotW_Italiano_0.5.9.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.9/CotW_Italiano_Setup_0.5.9.exe",
+  "setup_sha256": "f37bfbedcb40c22e4a9276261940ffed9cb0dc54468e137b85147e00e0703369"
  },
  "servizi": {
   "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
