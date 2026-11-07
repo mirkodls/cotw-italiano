@@ -9,7 +9,8 @@
   ],
   "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.9/CotW_Italiano_0.5.9.zip",
   "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.9/CotW_Italiano_Setup_0.5.9.exe",
-  "setup_sha256": "f37bfbedcb40c22e4a9276261940ffed9cb0dc54468e137b85147e00e0703369"
+  "setup_sha256": "f37bfbedcb40c22e4a9276261940ffed9cb0dc54468e137b85147e00e0703369",
+  "firma": "8fe6fe1269084791916cea0c30b46582116878d27457b7273b4bfbb95b4d44b40fe94f5aae50a9c2c5e727d378dbc134307b4071285cf91c65b3748e0888860c"
  },
  "servizi": {
   "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
