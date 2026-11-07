@@ -1043,7 +1043,8 @@ class Finestra(QMainWindow):
             self._messaggio('Fatto', ('Opzioni tolte da Steam.' if togli else
                                       'Opzioni di avvio impostate in Steam (%d account). Ora puoi aprire Steam e giocare.' % n))
         except Exception as e:
-            self._messaggio('Non riesco', str(e), 'avviso')
+            if not (not togli and self._senza_steam(e, controllo=bool(programma.cartella_exe()))):
+                self._messaggio('Non riesco', str(e), 'avviso')
         if chiuso:
             avvio.apri_steam()
         self.aggiorna_tutto()
@@ -1052,6 +1053,10 @@ class Finestra(QMainWindow):
         if not self._pronto(serve_gioco=False):
             return
         exe = programma.cartella_exe()
+        if attiva and not exe:
+            self._messaggio('Non disponibile', 'Il controllo prima di giocare funziona solo con il programma installato '
+                                               '(CotW Italiano.exe), non avviato da Python.', 'avviso')
+            return
         chiuso = self._steam_chiuso()
         if chiuso is None:
             return
@@ -1066,10 +1071,34 @@ class Finestra(QMainWindow):
                 avvio.imposta_steam(togli_controllo=True)
                 self._messaggio('Fatto', 'Controllo prima di giocare spento: il gioco parte direttamente con le mod.')
         except Exception as e:
-            self._messaggio('Non riesco', str(e), 'avviso')
+            if not (attiva and self._senza_steam(e, controllo=True)):
+                self._messaggio('Non riesco', str(e), 'avviso')
         if chiuso:
             avvio.apri_steam()
         self.aggiorna_tutto()
+
+    def _senza_steam(self, errore, controllo):
+        """Steam non c'e' (gioco senza launcher o altro negozio): propone l'icona sul desktop. True se gestito."""
+        if 'configurazione di Steam' not in str(errore):
+            return False
+        if not self.gioco:
+            self._messaggio('Gioco non trovato', 'Non trovo Steam su questo PC e nemmeno la cartella del gioco: '
+                                                 'indicala nella scheda Impostazioni.', 'avviso')
+            return True
+        if not self._conferma('Steam non trovato',
+                              'Non trovo la configurazione di Steam su questo PC (gioco senza launcher o di un altro negozio).\n\n'
+                              'Creo un\'icona sul desktop che avvia il gioco con le mod%s?\n\nDa ora apri il gioco da '
+                              'quell\'icona.' % (' e con il controllo prima di giocare (aggiornamenti)' if controllo else '')):
+            return True
+        try:
+            exe = programma.cartella_exe() if controllo else None
+            p = avvio.crea_collegamento(self.gioco, 'theHunter COTW in italiano' if exe else 'theHunter COTW con mod',
+                                        os.path.join(exe, programma.NOME_EXE) if exe else None)
+            self._messaggio('Fatto', 'Icona creata sul desktop:\n%s\n\nApri il gioco da li\': %s' % (
+                p, 'prima controlla gli aggiornamenti, poi parte con le mod.' if exe else 'parte con le mod.'))
+        except Exception as e:
+            self._messaggio('Non riesco', str(e), 'errore')
+        return True
 
     def _collegamento(self):
         if not self.gioco:
