@@ -42,6 +42,7 @@ def con_nuitka(ver, build):
             '--windows-console-mode=disable', '--assume-yes-for-downloads',
             '--windows-icon-from-ico=' + os.path.join(RADICE, 'risorse', 'icona.ico'),
             '--include-data-dir=%s=risorse' % os.path.join(RADICE, 'risorse'),
+            '--include-package=certifi', '--include-package-data=certifi',
             '--output-dir=' + build, '--output-filename=' + NOME + '.exe',
             '--company-name=' + AUTORE, '--product-name=' + NOME, '--file-version=' + v4, '--product-version=' + v4,
             '--file-description=' + DESCRIZIONE, '--copyright=(C) ' + AUTORE + ' - GPL-3.0',
@@ -65,6 +66,7 @@ def con_pyinstaller(ver, build):
     esegui([sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--windowed', '--name', NOME,
             '--icon', os.path.join(RADICE, 'risorse', 'icona.ico'),
             '--add-data', os.path.join(RADICE, 'risorse') + sep + 'risorse', '--version-file', vf,
+            '--hidden-import', 'certifi', '--collect-data', 'certifi',
             '--distpath', os.path.join(build, 'out'), '--workpath', os.path.join(build, 'lavoro'), '--specpath', build,
             os.path.join(RADICE, 'CotW_Italiano.py')])
     return os.path.join(build, 'out', NOME)

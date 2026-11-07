@@ -2,10 +2,29 @@
 Tutto passa da qui: elenco versioni (versione.json) e pacchetti .zip. Verifica sempre l'impronta SHA-256
 e la firma dell'autore su versione.json (cotw/core/firma.py)."""
 import os
+import ssl
 import json
 import hashlib
 import urllib.request
 from . import firma
+
+
+def _contesto_ssl():
+    """Certificati di Windows + quelli di certifi (inclusi nel programma).
+    Python, a differenza del browser, non scarica da solo i certificati radice che mancano a Windows: su alcuni PC
+    github.com falliva con "unable to get local issuer certificate". Con certifi in piu' la verifica funziona lo stesso
+    (resta sempre ATTIVA: niente scorciatoie)."""
+    ctx = ssl.create_default_context()
+    try:
+        import certifi
+        ctx.load_verify_locations(certifi.where())
+    except Exception:
+        pass
+    return ctx
+
+
+CONTESTO_SSL = _contesto_ssl()
+urllib.request.install_opener(urllib.request.build_opener(urllib.request.HTTPSHandler(context=CONTESTO_SSL)))
 
 REPO = 'mirkodls/cotw-italiano'
 PAGINA = 'https://github.com/%s' % REPO

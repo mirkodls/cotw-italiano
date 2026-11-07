@@ -33,6 +33,10 @@ def _consiglio(e):
         if e.code == 407:
             return 'Un PROXY chiede la password: controlla le impostazioni proxy di Windows.'
         return 'Risposta inattesa dal server (%d). Riprova piu\' tardi.' % e.code
+    if 'local issuer' in t:
+        return ('A Windows manca il certificato radice di questo sito (il browser lo scarica da solo, il programma no). '
+                'Dalla 0.5.10 il programma porta i suoi certificati: aggiorna il programma (scarica il Setup da GitHub). '
+                'Se resta: un antivirus "ispeziona" HTTPS, mettilo tra le eccezioni.')
     if 'certificate' in t or 'ssl' in t:
         return ('Certificato HTTPS non valido: o l\'ORA del PC e\' sbagliata, o un antivirus/proxy "ispeziona" il traffico '
                 '(Kaspersky, ESET, Avast, proxy aziendale). Controlla data e ora; disattiva la scansione HTTPS dell\'antivirus '
@@ -129,11 +133,19 @@ def prova_rete(avanzamento=None):
     return out
 
 
+def _certifi():
+    try:
+        import certifi
+        return 'si' if os.path.isfile(certifi.where()) else 'file mancante'
+    except Exception:
+        return 'no'
+
+
 def rapporto(risultati):
     from .. import VERSIONE
     righe = ['CotW Italiano %s - diagnosi connessione - %s' % (VERSIONE, time.strftime('%d/%m/%Y %H:%M')),
              'Windows %s, Python %s, exe: %s' % (platform.platform(), sys.version.split()[0], getattr(sys, 'frozen', False)),
-             'SSL: %s' % ssl.OPENSSL_VERSION, '']
+             'SSL: %s, certifi: %s' % (ssl.OPENSSL_VERSION, _certifi()), '']
     for r in risultati:
         segno = {True: 'OK  ', False: 'NO  ', None: '??  '}[r['ok']]
         righe.append('%s%s: %s' % (segno, r['nome'], r['dettaglio']))
