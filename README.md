@@ -46,7 +46,7 @@ Non serve installare altro. Il programma **si aggiorna da solo**: quando esce un
 Nessun software è sicuro al 100%: se noti qualcosa di strano, segnalalo su Discord.
 - **Indirizzo delle segnalazioni firmato** (dalla 0.5.8): anche l'indirizzo del servizio che riceve segnalazioni e contributi è firmato dall'autore. Nessuno può dirottarli.
 - **Certificati inclusi** (dalla 0.5.10): il programma verifica sempre l'identità di GitHub (HTTPS), anche sui PC dove a Windows manca qualche certificato radice.
-- **Antivirus**: alcuni antivirus segnalano per errore i programmi nuovi e non firmati ("falso positivo"). Il codice è tutto qui, l'exe è costruito da GitHub e ogni versione è segnalata a Microsoft per l'analisi. La firma del certificato (SignPath) è in richiesta.
+- **Antivirus**: alcuni antivirus segnalano per errore i programmi nuovi e non firmati ("falso positivo"). Il codice è tutto qui e l'exe è costruito da GitHub: puoi controllarlo anche su [VirusTotal](https://www.virustotal.com). La firma del certificato (SignPath) è in richiesta.
 
 ### Code signing policy
 
