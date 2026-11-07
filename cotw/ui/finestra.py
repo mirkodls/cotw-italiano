@@ -257,6 +257,9 @@ class Finestra(QMainWindow):
         if not self.gioco:
             QTimer.singleShot(300, self._chiedi_gioco)
         QTimer.singleShot(800, self._controlla_online)          # controllo aggiornamenti all'avvio
+        self.t_online = QTimer(self)                             # e poi ogni 5 minuti (senza popup: solo i banner)
+        self.t_online.timeout.connect(lambda: self._controlla_online(silenzioso=True))
+        self.t_online.start(5 * 60 * 1000)
         QTimer.singleShot(200, self._dentro_lo_zip)
         QTimer.singleShot(400, self._steam_spostato)
         self._tutorial_attivo, self._popup_rimandati = False, False
@@ -440,7 +443,7 @@ class Finestra(QMainWindow):
     def _pronto(self, serve_gioco=True):
         """Controlli prima di ogni operazione: gioco trovato, gioco chiuso, nessun altro lavoro in corso."""
         if self.lavoro and self.lavoro.isRunning():
-            self._messaggio('Attendi', 'C\'e\' gia\' un\'operazione in corso.', 'avviso')
+            self._metti_in_coda(sys._getframe(1))
             return False
         if serve_gioco and not self.gioco:
             self._messaggio('Gioco non trovato', 'Indica la cartella del gioco nella scheda Impostazioni.', 'avviso')
@@ -450,8 +453,33 @@ class Finestra(QMainWindow):
             return False
         return True
 
+    def _metti_in_coda(self, frame):
+        """Operazione chiesta mentre ne gira un'altra: la ricordo e la faccio appena finisce."""
+        nome = frame.f_code.co_name
+        f = getattr(self, nome, None)
+        if not callable(f) or nome.startswith('__'):
+            self._messaggio('Attendi', 'C\'e\' gia\' un\'operazione in corso.', 'avviso')
+            return
+        argn = frame.f_code.co_varnames[1:frame.f_code.co_argcount]
+        args = [frame.f_locals.get(a) for a in argn]
+        if not hasattr(self, '_coda_op'):
+            self._coda_op = []
+        if any(n == nome for n, _ in self._coda_op):
+            self.statusBar().showMessage('Gia\' in coda: la faccio appena finisce l\'operazione in corso.')
+            return
+        self._coda_op.append((nome, args))
+        self.statusBar().showMessage('In coda: la faccio appena finisce l\'operazione in corso.')
+        self._messaggio('In coda', 'C\'e\' gia\' un\'operazione in corso: questa la faccio appena finisce, da solo.')
+
+    def _esegui_coda(self):
+        if not getattr(self, '_coda_op', None) or (self.lavoro and self.lavoro.isRunning()):
+            return
+        nome, args = self._coda_op.pop(0)
+        getattr(self, nome)(*args)
+
     def _avvia(self, funzione, barra=None, etichetta_stato=None, al_termine=None):
         self.lavoro = Lavoro(funzione)
+        self.lavoro.finished.connect(lambda: QTimer.singleShot(400, self._esegui_coda))
 
         def av(a, b, t):
             if barra:
@@ -497,11 +525,50 @@ class Finestra(QMainWindow):
         self._scegli_gioco()
 
     # ======================= HOME =======================
+    def _comando_gioco(self):
+        """[] = da Steam (steam://rungameid) | [exe, opzioni...] = senza Steam. None = annullato."""
+        st, _ = avvio.stato_steam()
+        if st == 'nessun_steam':
+            return [os.path.join(self.gioco, percorsi.EXE_GIOCO)] + avvio.OPZIONI.split()
+        if st != 'impostate':
+            if self._conferma('Opzioni di avvio', 'In Steam non ci sono le opzioni che caricano la traduzione: il gioco '
+                                                  'partirebbe in inglese.\n\nLe imposto adesso? (Steam va chiuso un momento: '
+                                                  'lo faccio io.)'):
+                self._steam(False)
+                if avvio.stato_steam()[0] != 'impostate':
+                    return None
+            else:
+                return None
+        return []
+
+    def _gioca(self):
+        if not self._pronto():
+            return
+        comando = self._comando_gioco()
+        if comando is None:
+            return
+        from .prima_di_giocare import PrimaDiGiocare
+        d = PrimaDiGiocare(comando, self, dentro_app=True)
+        d.exec()
+        if d.scelta == 'contribuisci':
+            self._vai_a(6)
+        elif d.scelta in ('gioca', 'programma'):
+            self.close()                       # il gioco e' partito (o il programma si sta aggiornando): mi chiudo
+
     def _home(self):
         area, lay = pagina('Home', 'Lo stato della traduzione italiana sul tuo PC.')
         self.avviso_gioco = etichetta('Il gioco e\' aperto: chiudilo prima di installare, rimuovere o cambiare qualcosa.', 'avviso')
         self.avviso_gioco.hide()
         lay.addWidget(self.avviso_gioco)
+        r = QHBoxLayout()
+        self.b_gioca = bottone('\u25b6  GIOCA', 'primario')
+        self.b_gioca.setMinimumHeight(52)
+        self.b_gioca.setStyleSheet('font-size: 18pt; font-weight: bold; padding: 8px 40px;')
+        self.b_gioca.setToolTip('Controlla gli aggiornamenti, avvia il gioco con le mod e chiude il programma.')
+        self.b_gioca.clicked.connect(self._gioca)
+        r.addWidget(self.b_gioca)
+        r.addWidget(etichetta('Controlla gli aggiornamenti, avvia il gioco con la traduzione e chiude il programma.', 'tenue'), 1)
+        lay.addLayout(r)
         self.banner_agg = QFrame()
         self.banner_agg.setObjectName('banner')
         bl = QHBoxLayout(self.banner_agg)
@@ -787,7 +854,7 @@ class Finestra(QMainWindow):
         return [c for c, (cb, _, _) in self.i_comp.items() if cb.isChecked()]
 
     # --- controllo online in background ---
-    def _controlla_online(self, mostra=False):
+    def _controlla_online(self, mostra=False, silenzioso=False):
         if getattr(self, '_ctrl', None) and self._ctrl.isRunning():
             return
         th = ControlloOnline()
@@ -795,16 +862,13 @@ class Finestra(QMainWindow):
 
         def fatto(m):
             self.manifest, self.errore_online, self.controllato = m, None, True
-            try:                                   # appena controllato e niente da aggiornare: Gioca parte subito
-                da_agg = self.dz() and any(v[2] == 'aggiornare' for v in aggiornamenti.confronta(m, self.dz()).values())
-                da_fare = bool(th.doc) and contribuisci.serve_aiuto(th.doc, th.stato)   # cosi' Gioca lo chiede
-                if m and not da_agg and not da_fare and not programma.disponibile(th.online):
-                    from .prima_di_giocare import segna_controllo
-                    segna_controllo()
-            except Exception:
-                pass
+            nuova_prima = programma.disponibile(self.c_online)
             self.c_doc, self.c_stato, self.c_online = th.doc, th.stato, th.online
             self.aggiorna_tutto()
+            if silenzioso:                         # controllo ogni 5 minuti: popup solo se e' uscito il programma nuovo
+                if programma.disponibile(th.online) and not nuova_prima and not self._tutorial_attivo:
+                    self._popup_programma()
+                return
             if self._tutorial_attivo:
                 self._popup_rimandati = True
             else:
@@ -815,6 +879,8 @@ class Finestra(QMainWindow):
         def errore(e):
             self.errore_online, self.controllato = e, True
             self.aggiorna_tutto()
+            if silenzioso:
+                return
             if not self._tutorial_attivo:            # senza internet: gli avvisi del PC si mostrano lo stesso
                 self._avvisi()
             if mostra:
@@ -1363,6 +1429,7 @@ class Finestra(QMainWindow):
             d.exec()
 
         self.lavoro = Lavoro(lavoro)
+        self.lavoro.finished.connect(lambda: QTimer.singleShot(400, self._esegui_coda))
         self.lavoro.finito.connect(lambda _m: mostra())
         self.lavoro.errore.connect(lambda e: self._messaggio('Prova non riuscita', e, 'errore'))
         self.lavoro.start()

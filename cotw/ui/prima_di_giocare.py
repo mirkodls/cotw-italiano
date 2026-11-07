@@ -14,7 +14,8 @@ from .. import VERSIONE
 
 APP_ID = '518790'
 ATTESA_MAX = 4000          # millisecondi: oltre, si gioca senza aspettare
-RECENTE = 30 * 60          # (non piu' usato per saltare il controllo: ora si controlla a ogni avvio)
+RECENTE = 30 * 60
+SUBITO = 120               # secondi: controllo appena fatto dal tasto Gioca del programma -> non ricontrolla
 
 
 def _file_ultimo():
@@ -109,9 +110,11 @@ class Aggiorna(QThread):
 
 
 class PrimaDiGiocare(QDialog):
-    def __init__(self, comando):
-        super().__init__()
+    def __init__(self, comando, padre=None, dentro_app=False):
+        super().__init__(padre)
         self.comando = comando
+        self.dentro_app = dentro_app          # aperto dal tasto Gioca del programma: "contribuisci" resta nel programma
+        self.scelta = None                    # 'gioca' | 'contribuisci' | 'programma'
         self.setWindowTitle('CotW Italiano')
         self.setMinimumWidth(520)
         lay = QVBoxLayout(self)
@@ -219,6 +222,7 @@ class PrimaDiGiocare(QDialog):
         from .aggiorna_programma import aggiorna
         self._partito = True                       # si riapre con --gioco e poi parte il gioco
         if aggiorna(self, self.prog, ['--gioco'] + list(self.comando)):
+            self.scelta = 'programma'
             self.accept()
             return
         self._partito = False
@@ -226,8 +230,9 @@ class PrimaDiGiocare(QDialog):
 
     def _contribuisci(self):
         """Apre il programma sulla scheda Contribuisci (il gioco si avvia dopo, quando vuole l'utente)."""
+        self.scelta = 'contribuisci'
         exe = programma.cartella_exe()
-        if exe:
+        if exe and not self.dentro_app:
             subprocess.Popen([os.path.join(exe, programma.NOME_EXE), '--contribuisci'],
                              creationflags=0x00000008 | 0x00000200 if sys.platform == 'win32' else 0, close_fds=True)
         self._partito = True
@@ -237,6 +242,7 @@ class PrimaDiGiocare(QDialog):
         if getattr(self, '_partito', False):
             return
         self._partito = True
+        self.scelta = 'gioca'
         segna_controllo()
         try:
             avvia_gioco(self.comando)
@@ -250,6 +256,9 @@ def esegui(argv):
     i = argv.index('--gioco')
     comando = argv[i + 1:]
     if percorsi.gioco_in_esecuzione():
+        return 0
+    if controllo_recente(SUBITO):        # appena controllato dal tasto Gioca del programma (che passa da Steam)
+        avvia_gioco(comando)
         return 0
     d = PrimaDiGiocare(comando)
     d.exec()
