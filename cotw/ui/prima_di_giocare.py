@@ -164,7 +164,8 @@ class PrimaDiGiocare(QDialog):
                 self.da_agg = [c for c, v in conf.items() if v[2] == 'aggiornare']
             except Exception:
                 self.da_agg = []
-        self.prog = programma.disponibile(o) if programma.cartella_exe() else None
+        # con l'avvio il programma lo aggiorna lui (l'ha gia' chiesto appena premuto Gioca)
+        self.prog = programma.disponibile(o) if (programma.cartella_exe() and not programma.con_avvio()) else None
         self.contr = None                       # battute da doppiare: lo chiede OGNI volta che si gioca (se ce ne sono)
         d = (m or {}).get('da_doppiare')
         st = self.th.stato
@@ -220,6 +221,12 @@ class PrimaDiGiocare(QDialog):
         self.ag.start()
 
     def _aggiorna_programma(self):
+        if programma.con_avvio():
+            programma.aggiorna_con_avvio(self.prog, ['--gioco'] + list(self.comando))
+            self._partito = True
+            self.scelta = 'programma'
+            self.accept()
+            return
         from .aggiorna_programma import aggiorna
         self._partito = True                       # si riapre con --gioco e poi parte il gioco
         if aggiorna(self, self.prog, ['--gioco'] + list(self.comando)):

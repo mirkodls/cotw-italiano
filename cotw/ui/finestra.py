@@ -2182,6 +2182,8 @@ class Finestra(QMainWindow):
         cfg = percorsi.leggi_config()
         if cfg.get('popup_programma') == nuova['versione']:
             return False
+        if programma.con_avvio() and programma.rinviato_da_avvio(nuova['versione']):
+            return False                        # l'avvio l'ha appena chiesto: resta solo il banner
         cfg['popup_programma'] = nuova['versione']
         percorsi.salva_config(cfg)
         if QMessageBox.question(self, 'Programma da aggiornare',
@@ -2203,6 +2205,10 @@ class Finestra(QMainWindow):
             return
         if self.lavoro and self.lavoro.isRunning():
             self._messaggio('Attendi', 'C\'e\' gia\' un\'operazione in corso.', 'avviso')
+            return
+        if programma.con_avvio():              # dalla 0.5.14 aggiorna l'AVVIO (programma separato), poi riapre
+            programma.aggiorna_con_avvio(nuova)
+            QApplication.instance().quit()
             return
         from .aggiorna_programma import aggiorna
         aggiorna(self, nuova)

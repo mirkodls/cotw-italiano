@@ -45,13 +45,20 @@ def main():
         app.setStyle('Fusion')
         app.setStyleSheet(stile.QSS)
         from cotw.ui import compagno
+        from cotw.core import programma
+        programma.segna_ok()
         sys.exit(compagno.esegui(app))
     if '--gioco' in sys.argv:                 # premuto Gioca (Steam o collegamento): controllo veloce e via
         app.setApplicationName('CotW Italiano')
         app.setStyle('Fusion')
         app.setStyleSheet(stile.QSS)
         from cotw.ui import prima_di_giocare
-        sys.exit(prima_di_giocare.esegui(sys.argv))
+        from cotw.core import programma
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(3000, programma.segna_ok)   # "sono ok" per l'avvio (ritorno indietro automatico)
+        r = prima_di_giocare.esegui(sys.argv)
+        programma.segna_ok()
+        sys.exit(r)
     app.setApplicationName('CotW Italiano')
     app.setStyle('Fusion')
     app.setStyleSheet(stile.QSS)
@@ -62,6 +69,9 @@ def main():
         app.setWindowIcon(QIcon(ico))
     w = Finestra()
     w.show()
+    from cotw.core import programma
+    from PySide6.QtCore import QTimer
+    QTimer.singleShot(3000, programma.segna_ok)       # "sono ok" per l'avvio (ritorno indietro automatico)
     sys.exit(app.exec())
 
 

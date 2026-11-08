@@ -159,6 +159,10 @@ def esegui(argv):
         _passo(rapporto, 'online.json vero + firma', _online_vero)
         _passo(rapporto, 'versione.json vero + firma', _manifest_vero)
     rapporto['ok'] = all(p['ok'] for p in rapporto['passi'])
+    rapporto['con_avvio'] = bool(os.environ.get('COTW_AVVIO'))
+    if rapporto['ok']:
+        from cotw.core import programma
+        programma.segna_ok()
     with open(uscita, 'w', encoding='utf-8') as f:
         json.dump(rapporto, f, ensure_ascii=False, indent=1)
     return 0 if rapporto['ok'] else 1

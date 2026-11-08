@@ -29,8 +29,22 @@ def _num(v):
         return (0,)
 
 
+def exe_avvio():
+    """Dalla 0.5.14 il programma si apre dall'AVVIO (programmino separato che aggiorna e torna indietro se serve):
+    percorso dell'avvio, se il programma e' stato aperto da lui."""
+    p = os.environ.get('COTW_AVVIO')
+    return p if p and os.path.basename(p).lower() == NOME_EXE.lower() and os.path.isfile(p) else None
+
+
+def con_avvio():
+    return bool(exe_avvio())
+
+
 def cartella_exe():
-    """Cartella dell'exe se il programma gira come exe, altrimenti None (avviato da Python: niente auto-aggiornamento)."""
+    """Cartella dell'exe se il programma gira come exe, altrimenti None (avviato da Python: niente auto-aggiornamento).
+    Con l'avvio e' la cartella dell'AVVIO: icone, Steam e collegamenti devono aprire lui, non una versione precisa."""
+    if exe_avvio():
+        return os.path.dirname(os.path.abspath(exe_avvio()))
     for p in (sys.executable, sys.argv[0] if sys.argv else ''):
         if p and os.path.basename(p).lower() == NOME_EXE.lower() and os.path.isfile(p):
             return os.path.dirname(os.path.abspath(p))
@@ -66,6 +80,35 @@ def disponibile(online, chiavi=None, canale_scelto=None):
         if migliore is None or _num(p['versione']) > _num(migliore['versione']):
             migliore = dict(p, anteprima=(nome == 'anteprima'))
     return migliore
+
+
+def segna_ok():
+    """Regola 3: la versione nuova dice "sono ok" all'avvio (che altrimenti torna da solo alla precedente)."""
+    if not con_avvio():
+        return
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(sys.executable)), 'avvio_ok.txt'), 'w') as f:
+            f.write('%s %d\n' % (VERSIONE, int(time.time())))
+    except Exception:
+        pass
+
+
+def rinviato_da_avvio(versione):
+    """True se all'apertura l'avvio ha gia' chiesto di questa versione e l'utente ha detto "piu' tardi"."""
+    try:
+        import json
+        with open(os.path.join(cartella_exe(), 'programma', 'stato.json'), encoding='utf-8') as f:
+            r = json.load(f).get('rinvio') or {}
+        return r.get('versione') == versione and time.time() < float(r.get('fino') or 0)
+    except Exception:
+        return False
+
+
+def aggiorna_con_avvio(info, argomenti=None):
+    """Con l'avvio l'aggiornamento lo fa LUI (programma separato): lo si apre con --aggiorna e questo si chiude."""
+    segna_tentativo(info)
+    subprocess.Popen([exe_avvio(), '--aggiorna'] + list(argomenti or []),
+                     creationflags=(0x00000008 | 0x00000200) if sys.platform == 'win32' else 0, close_fds=True)
 
 
 # ---------------- ultima spiaggia: se l'aggiornamento automatico non riesce ----------------

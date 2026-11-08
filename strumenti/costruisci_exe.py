@@ -26,6 +26,11 @@ def versione():
     return re.search(r"VERSIONE\s*=\s*'([^']+)'", t).group(1)
 
 
+def versione_avvio():
+    t = open(os.path.join(RADICE, 'avvio', '__init__.py'), encoding='utf-8').read()
+    return re.search(r"AVVIO_VERSIONE\s*=\s*'([^']+)'", t).group(1)
+
+
 def quattro(v):
     p = [int(x) for x in v.split('.')][:4]
     return tuple(p + [0] * (4 - len(p)))
@@ -72,6 +77,30 @@ def con_pyinstaller(ver, build):
     return os.path.join(build, 'out', NOME)
 
 
+def avvio_nuitka(av, build):
+    """L'AVVIO: un solo file exe (onefile), piccolo, senza Qt. Si estrae una volta nella cache e poi parte subito."""
+    v4 = '.'.join(map(str, quattro(av)))
+    esegui([sys.executable, '-m', 'nuitka', '--onefile', '--enable-plugin=tk-inter',
+            '--windows-console-mode=disable', '--assume-yes-for-downloads',
+            '--windows-icon-from-ico=' + os.path.join(RADICE, 'risorse', 'icona.ico'),
+            '--include-package=certifi', '--include-package-data=certifi',
+            '--onefile-tempdir-spec={CACHE_DIR}/CotW Italiano/avvio-{VERSION}',
+            '--output-dir=' + build, '--output-filename=' + NOME + '.exe',
+            '--company-name=' + AUTORE, '--product-name=' + NOME, '--file-version=' + v4, '--product-version=' + v4,
+            '--file-description=CotW Italiano - avvio e aggiornamenti', '--copyright=(C) ' + AUTORE + ' - GPL-3.0',
+            os.path.join(RADICE, 'CotW_Avvio.py')])
+    return os.path.join(build, NOME + '.exe')
+
+
+def avvio_pyinstaller(av, build):
+    esegui([sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--windowed', '--onefile', '--name', NOME,
+            '--icon', os.path.join(RADICE, 'risorse', 'icona.ico'),
+            '--hidden-import', 'certifi', '--collect-data', 'certifi',
+            '--distpath', os.path.join(build, 'out'), '--workpath', os.path.join(build, 'lavoro'), '--specpath', build,
+            os.path.join(RADICE, 'CotW_Avvio.py')])
+    return os.path.join(build, 'out', NOME + '.exe')
+
+
 def trova_iscc():
     for p in (shutil.which('iscc'), r'C:\Program Files (x86)\Inno Setup 6\ISCC.exe', r'C:\Program Files\Inno Setup 6\ISCC.exe',
               os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Programs', 'Inno Setup 6', 'ISCC.exe')):
@@ -80,13 +109,13 @@ def trova_iscc():
     return None
 
 
-def installer(ver, finale, dist):
+def installer(ver, finale, dist, avvio_exe):
     """Installer (Inno Setup): CotW_Italiano_Setup_<ver>.exe. None se Inno Setup non c'e'."""
     iscc = trova_iscc()
     if not iscc:
         print('(Inno Setup non trovato: niente installer)')
         return None
-    esegui([iscc, '/Qp', '/DVERSIONE=' + ver, '/DSORGENTE=' + finale, '/DUSCITA=' + dist,
+    esegui([iscc, '/Qp', '/DVERSIONE=' + ver, '/DSORGENTE=' + finale, '/DUSCITA=' + dist, '/DAVVIO=' + avvio_exe,
             os.path.join(RADICE, 'strumenti', 'installer.iss')])
     p = os.path.join(dist, 'CotW_Italiano_Setup_%s.exe' % ver)
     if not os.path.isfile(p):
@@ -120,7 +149,21 @@ def main():
                 z.write(p, os.path.join(NOME, os.path.relpath(p, finale)))
     sha = hashlib.sha256(open(zp, 'rb').read()).hexdigest()
     info = {'versione': ver, 'zip': os.path.basename(zp), 'sha256': sha, 'dimensione': os.path.getsize(zp)}
-    setup = installer(ver, finale, dist)
+    # AVVIO (programmino separato che aggiorna e torna indietro): va accanto, nella cartella di installazione
+    av = versione_avvio()
+    build_av = os.path.join(RADICE, 'build_avvio')
+    shutil.rmtree(build_av, ignore_errors=True)
+    fatto_av = avvio_nuitka(av, build_av) if a.metodo == 'nuitka' else avvio_pyinstaller(av, build_av)
+    if os.name == 'nt' and not os.path.isfile(fatto_av):
+        sys.exit('ERRORE: manca l\'avvio %s' % fatto_av)
+    avvio_exe = os.path.join(dist, 'avvio', NOME + '.exe')
+    os.makedirs(os.path.dirname(avvio_exe), exist_ok=True)
+    shutil.copy(fatto_av, avvio_exe)
+    nome_av = 'CotW_Avvio_%s.exe' % av
+    shutil.copy(fatto_av, os.path.join(dist, nome_av))
+    info['avvio'] = {'versione': av, 'file': nome_av,
+                     'sha256': hashlib.sha256(open(avvio_exe, 'rb').read()).hexdigest()}
+    setup = installer(ver, finale, dist, avvio_exe)
     if setup:
         info['setup'] = os.path.basename(setup)
         info['setup_sha256'] = hashlib.sha256(open(setup, 'rb').read()).hexdigest()

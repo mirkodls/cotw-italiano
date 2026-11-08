@@ -101,6 +101,8 @@ jobs:
               note = ('**Per installare:** scarica `%s` e aprilo (si installa da solo, con l\'icona sul desktop).\n\n' % info['setup']) + note
               note += '\nSHA-256 installer: ' + info['setup_sha256']
           allegati = [zp] + ([os.path.join('dist', info['setup'])] if info.get('setup') else [])
+          if info.get('avvio'):                       # dalla 0.5.14: l'AVVIO separato (si aggiorna in due copie)
+              allegati.append(os.path.join('dist', info['avvio']['file']))
           subprocess.run(['gh', 'release', 'create', tag] + allegati + ['--title', 'Programma CotW Italiano ' + info['versione'],
                           '--notes', note, '--latest=false'], check=True)
           o = json.load(open('online.json', encoding='utf-8'))
@@ -111,6 +113,10 @@ jobs:
               o['anteprima']['setup_url'] = 'https://github.com/%s/releases/download/%s/%s' % (
                   os.environ['GITHUB_REPOSITORY'], tag, info['setup'])
               o['anteprima']['setup_sha256'] = info['setup_sha256']
+          if info.get('avvio'):
+              o['anteprima']['avvio'] = {'versione': info['avvio']['versione'], 'sha256': info['avvio']['sha256'],
+                                         'url': 'https://github.com/%s/releases/download/%s/%s' % (
+                                             os.environ['GITHUB_REPOSITORY'], tag, info['avvio']['file'])}
           json.dump(o, open('online.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
           for c in (['git', 'config', 'user.name', 'github-actions[bot]'],
                     ['git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'],
