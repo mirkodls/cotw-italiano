@@ -33,6 +33,7 @@
    "versione": "1",
    "sha256": "e32d8169c22bb8abca8de5b32411a921569eb20cca749d6cef95774aa94ff93b",
    "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.14/CotW_Avvio_1.exe"
-  }
+  },
+  "firma": "949ff965e1dcfc43de0ce565b87b7e5dc92da5e4f75a2d4a37c153bf1e45f1e1a6b4c59996d61512c01499654df36883df7e5b4f3a36c06c2428bdecf966c607"
  }
 }
