@@ -683,10 +683,17 @@ class Finestra(QMainWindow):
         h['traduzione'][1].setText('Sottotitoli, menu e missioni + le voci italiane di tutti i personaggi.')
         # avvio
         st = self._aggiorna_avvio()
-        self._imposta(h['avvio'][0][0], {'impostate': 'Pronto', 'mancano': 'Da sistemare', 'diverse': 'Da sistemare',
-                                         'nessun_steam': 'Steam non trovato'}[st], 'ok' if st == 'impostate' else 'attenzione')
-        h['avvio'][1].setText('Senza le opzioni di avvio il gioco ignora tutte le mod.' if st != 'impostate' else
-                              'Steam avvia il gioco con le mod.')
+        if self._launcher_assente():
+            ic = self._icona_controllo()
+            self._imposta(h['avvio'][0][0], 'Pronto (icona sul desktop)' if ic else 'Da sistemare',
+                          'ok' if ic else 'attenzione')
+            h['avvio'][1].setText('Gioco senza launcher: apri il gioco dall\'icona "theHunter COTW in italiano" sul desktop.'
+                                  if ic else 'Gioco senza launcher: crea l\'icona sul desktop per avviarlo con le mod.')
+        else:
+            self._imposta(h['avvio'][0][0], {'impostate': 'Pronto', 'mancano': 'Da sistemare', 'diverse': 'Da sistemare',
+                                             'nessun_steam': 'Steam non trovato'}[st], 'ok' if st == 'impostate' else 'attenzione')
+            h['avvio'][1].setText('Senza le opzioni di avvio il gioco ignora tutte le mod.' if st != 'impostate' else
+                                  'Steam avvia il gioco con le mod.')
         # missioni e salvataggi
         bk = missioni.elenco_backup()
         prof = percorsi.profili_salvataggi()
