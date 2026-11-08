@@ -140,6 +140,41 @@ def prove_avvio(dist, lavoro, base, pubblica, risultati):
         ok and st.get('attuale') == '99.0.0' and '99.5.0' in (st.get('rotte') or []))
 
 
+def prova_migrazione(dist, info, lavoro, risultati):
+    """Chi ha la versione pubblica di adesso si aggiorna con l'installer nuovo SOPRA quella vecchia (come fa il
+    programma da solo: /SILENT nella stessa cartella). Deve funzionare anche il cambio di disposizione."""
+    import urllib.request
+    try:
+        o = json.loads(urllib.request.urlopen('https://raw.githubusercontent.com/mirkodls/cotw-italiano/main/online.json',
+                                              timeout=30).read().decode('utf-8'))
+        url = (o.get('programma') or {}).get('setup_url')
+    except Exception as e:
+        print('migrazione: online.json non letto (%s): salto' % e)
+        return
+    if not url:
+        return
+    dest = os.path.join(lavoro, 'migrazione')
+    vecchio = os.path.join(lavoro, 'setup_vecchio.exe')
+    print('\n=== PROVA: aggiornamento dalla versione pubblica (%s) ===' % url.rsplit('/', 1)[-1], flush=True)
+    with urllib.request.urlopen(url, timeout=120) as r, open(vecchio, 'wb') as f:
+        shutil.copyfileobj(r, f)
+    base = ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER', '/TASKS=', '/DIR=' + dest]
+    r1 = subprocess.run([vecchio] + base, timeout=600).returncode
+    r2 = subprocess.run([os.path.join(dist, info['setup']), '/SILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/NOCANCEL',
+                         '/DIR=' + dest], timeout=600).returncode
+    resti = [n for n in ('PySide6', 'python313.dll', 'qt6core.dll') if os.path.exists(os.path.join(dest, n))]
+    nuova = os.path.isfile(os.path.join(dest, 'programma', info['versione'], 'CotW Italiano.exe'))
+    print('  installer vecchio %s, nuovo %s, versione nuova al suo posto: %s, pezzi vecchi rimasti: %s'
+          % (r1, r2, nuova, resti or 'nessuno'))
+    ok = r1 == 0 and r2 == 0 and nuova and not resti
+    ok = lancia('migrazione', [os.path.join(dest, 'CotW Italiano.exe')], {'COTW_DATI': os.path.join(lavoro, 'd7')},
+                lavoro) and ok
+    risultati['aggiornamento dalla versione pubblica con l\'installer'] = ok
+    un = os.path.join(dest, 'unins000.exe')
+    if os.path.isfile(un):
+        subprocess.run([un, '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'], timeout=300)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--exe', default=os.path.join(RADICE, 'dist', 'CotW Italiano', 'CotW Italiano.exe'))
@@ -187,6 +222,7 @@ def main():
             un = os.path.join(dest, 'unins000.exe')
             if os.path.isfile(un):
                 subprocess.run([un, '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'], timeout=300)
+        prova_migrazione(a.dist, info, lavoro, risultati)
 
     print('\n================ RIEPILOGO ================')
     for k, v in risultati.items():
