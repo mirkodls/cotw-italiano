@@ -1,22 +1,6 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.13",
-  "sha256": "e94ba3aa2f8de51218905f1ab3d9be5ef54da38989cf16eb2ee2b56555ed9ef2",
-  "dimensione": 32813436,
-  "novita": [
-   "Home: lo stato \"Avvio con le mod\" ora e' giusto anche per il gioco senza launcher (icona sul desktop)"
-  ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.13/CotW_Italiano_0.5.13.zip",
-  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.13/CotW_Italiano_Setup_0.5.13.exe",
-  "setup_sha256": "9aa5a3b01adfc2f5f11bce948f6e6b765ce0ce21c18ca8217ff15fcbd3ee91f0",
-  "firma": "63fd01d17f7a4c4125018a48945fdd304d23a4d52b771abc557ab1d06944842909b4fe1c7fb36aeb92cd1fb4b4f6d9278d12dac5d0d2010e00d4bbd1e36e8b06"
- },
- "servizi": {
-  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
-  "firma": "34ce483696ee4998f4d5b52f0dbb33ddef24f6d8ab2c3800e1940d8018ca4be7b9c3f9df583eb3a9b129d34588361099a8fe8cbef67696a168d15f7381122507"
- },
- "anteprima": {
   "versione": "0.5.14",
   "sha256": "4c37fca960cf1a48327ea1424d70f828a9216b3fe02e2bb7bb208175558e1740",
   "dimensione": 36848905,
@@ -35,5 +19,9 @@
    "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.14/CotW_Avvio_1.exe"
   },
   "firma": "949ff965e1dcfc43de0ce565b87b7e5dc92da5e4f75a2d4a37c153bf1e45f1e1a6b4c59996d61512c01499654df36883df7e5b4f3a36c06c2428bdecf966c607"
+ },
+ "servizi": {
+  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
+  "firma": "34ce483696ee4998f4d5b52f0dbb33ddef24f6d8ab2c3800e1940d8018ca4be7b9c3f9df583eb3a9b129d34588361099a8fe8cbef67696a168d15f7381122507"
  }
 }
