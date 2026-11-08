@@ -41,7 +41,8 @@ def _senza_steam(exe):
     """True se e' l'exe del gioco e su questo PC non c'e' Steam (gioco senza launcher)."""
     try:
         from ..core import avvio
-        return os.path.basename(exe).lower() == percorsi.EXE_GIOCO.lower() and not avvio.file_config_steam()
+        return os.path.basename(exe).lower() == percorsi.EXE_GIOCO.lower() and (
+            avvio.senza_launcher(os.path.dirname(exe)) or not avvio.file_config_steam())
     except Exception:
         return False
 

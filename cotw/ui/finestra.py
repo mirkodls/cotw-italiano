@@ -321,7 +321,7 @@ class Finestra(QMainWindow):
             sst, testo = avvio.stato_steam()
             exe = programma.cartella_exe()
             att = avvio.controllo_attivo(testo)
-            if sst in ('mancano', 'diverse'):
+            if sst in ('mancano', 'diverse') and not self._launcher_assente():
                 out.append(('Steam non avvia il gioco con le mod: le opzioni di avvio mancano.', 'Sistema',
                             (lambda: self._controllo(True)) if exe else (lambda: self._steam(False))))
             elif exe and att and os.path.normcase(att) != os.path.normcase(os.path.join(exe, programma.NOME_EXE)):
@@ -528,7 +528,7 @@ class Finestra(QMainWindow):
     def _comando_gioco(self):
         """[] = da Steam (steam://rungameid) | [exe, opzioni...] = senza Steam. None = annullato."""
         st, _ = avvio.stato_steam()
-        if st == 'nessun_steam':
+        if st == 'nessun_steam' or avvio.senza_launcher(self.gioco):
             return [os.path.join(self.gioco, percorsi.EXE_GIOCO)] + avvio.OPZIONI.split()
         if st != 'impostate':
             if self._conferma('Opzioni di avvio', 'In Steam non ci sono le opzioni che caricano la traduzione: il gioco '
@@ -1049,6 +1049,17 @@ class Finestra(QMainWindow):
         exe = programma.cartella_exe()
         exe = os.path.join(exe, programma.NOME_EXE) if exe else None
         att = avvio.controllo_attivo(testo)
+        if self._launcher_assente():
+            self._imposta(self.a_stato, 'Senza launcher: il gioco parte dall\'icona sul desktop', 'tenue')
+            ic = self._icona_controllo()
+            self.a_ctrl_on.setEnabled(bool(exe))
+            self.a_ctrl_off.setEnabled(bool(ic))
+            self._imposta(self.a_ctrl, 'Attivo (icona sul desktop)' if ic else ('Spento' if exe else 'Solo con il programma .exe'),
+                          'ok' if ic else 'attenzione')
+            self.a_ctrl_info.setText('Apri il gioco dall\'icona "theHunter COTW in italiano" sul desktop: parte come '
+                                     'amministratore, prima controlla gli aggiornamenti.' if ic else '')
+            self.a_ctrl_info.setVisible(bool(ic))
+            return st
         if not exe:
             self._imposta(self.a_ctrl, 'Solo con il programma .exe', 'tenue')
             self.a_ctrl_on.setEnabled(False)
@@ -1097,6 +1108,9 @@ class Finestra(QMainWindow):
         return True
 
     def _steam(self, togli):
+        if not togli and self._launcher_assente():         # gioco senza launcher: niente Steam, si usa l'icona
+            self._senza_steam(None, controllo=bool(programma.cartella_exe()))
+            return
         if not self._pronto(serve_gioco=False):
             return
         chiuso = self._steam_chiuso()
@@ -1116,6 +1130,12 @@ class Finestra(QMainWindow):
         self.aggiorna_tutto()
 
     def _controllo(self, attiva):
+        if self._launcher_assente():                 # gioco senza launcher: il controllo passa dall'icona sul desktop
+            if attiva:
+                self._senza_steam(None, controllo=bool(programma.cartella_exe()))
+            else:
+                self._senza_steam(None, controllo=False)
+            return
         if not self._pronto(serve_gioco=False):
             return
         exe = programma.cartella_exe()
@@ -1143,16 +1163,24 @@ class Finestra(QMainWindow):
             avvio.apri_steam()
         self.aggiorna_tutto()
 
+    def _launcher_assente(self):
+        return bool(self.gioco) and (avvio.senza_launcher(self.gioco) or not avvio.file_config_steam())
+
+    def _icona_controllo(self):
+        """Percorso dell'icona sul desktop con il controllo prima di giocare (gioco senza launcher), se c'e'."""
+        p = percorsi.leggi_config().get('icona_controllo')
+        return p if p and os.path.isfile(p) else None
+
     def _senza_steam(self, errore, controllo):
         """Steam non c'e' (gioco senza launcher o altro negozio): propone l'icona sul desktop. True se gestito."""
-        if 'configurazione di Steam' not in str(errore):
+        if errore is not None and 'configurazione di Steam' not in str(errore):
             return False
         if not self.gioco:
             self._messaggio('Gioco non trovato', 'Non trovo Steam su questo PC e nemmeno la cartella del gioco: '
                                                  'indicala nella scheda Impostazioni.', 'avviso')
             return True
         if not self._conferma('Steam non trovato',
-                              'Non trovo la configurazione di Steam su questo PC (gioco senza launcher o di un altro negozio).\n\n'
+                              'Il gioco non si avvia da Steam su questo PC (gioco senza launcher).\n\n'
                               'Creo un\'icona sul desktop che avvia il gioco con le mod%s?\n\nDa ora apri il gioco da '
                               'quell\'icona.' % (' e con il controllo prima di giocare (aggiornamenti)' if controllo else '')):
             return True
@@ -1160,6 +1188,10 @@ class Finestra(QMainWindow):
             exe = programma.cartella_exe() if controllo else None
             p = avvio.crea_collegamento(self.gioco, 'theHunter COTW in italiano' if exe else 'theHunter COTW con mod',
                                         os.path.join(exe, programma.NOME_EXE) if exe else None)
+            cfg = percorsi.leggi_config()
+            cfg['icona_controllo'] = p if exe else None
+            percorsi.salva_config(cfg)
+            self.aggiorna_tutto()
             self._messaggio('Fatto', 'Icona creata sul desktop:\n%s\n\nApri il gioco da li\': %s' % (
                 p, 'prima controlla gli aggiornamenti, poi parte con le mod.' if exe else 'parte con le mod.'))
             self._togli_vecchie_icone(p)

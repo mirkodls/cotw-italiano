@@ -256,6 +256,14 @@ def imposta_steam(togli=False, controllo_exe=None, togli_controllo=False):
 
 
 # ---------------- collegamento sul desktop (senza launcher) ----------------
+def senza_launcher(gioco):
+    """True se il gioco NON e' di Steam o Epic (si avvia direttamente dall'exe, serve l'amministratore)."""
+    g = os.path.abspath(gioco or '').lower().replace('/', '\\')
+    if '\\steamapps\\' in g + '\\' or 'epic games' in g:
+        return False
+    return True
+
+
 def crea_collegamento(gioco, nome='theHunter COTW con mod', programma_exe=None):
     """programma_exe: il collegamento apre prima CotW Italiano (controllo aggiornamenti) e poi il gioco."""
     if not percorsi.IS_WIN:
@@ -283,8 +291,8 @@ def crea_collegamento(gioco, nome='theHunter COTW con mod', programma_exe=None):
                        capture_output=True, text=True, creationflags=0x08000000)
     if r.returncode != 0 or not os.path.isfile(lnk):
         raise RuntimeError('Non sono riuscito a creare il collegamento: ' + (r.stderr or '').strip()[:300])
-    if not programma_exe and not file_config_steam():
-        _esegui_come_amministratore(lnk)      # gioco senza launcher: l'icona lo apre come amministratore
+    if senza_launcher(gioco) or not file_config_steam():
+        _esegui_come_amministratore(lnk)      # gioco senza launcher: l'icona si apre come amministratore
     return lnk
 
 
