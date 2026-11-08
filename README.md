@@ -8,12 +8,12 @@ Di **Mirko Del Sette**. Sito: **[mirkodls.github.io/cotw-italiano](https://mirko
 ## ⬇️ Scarica
 
 <!--scarica-->
-**[Scarica l'installer](https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.13/CotW_Italiano_Setup_0.5.13.exe)** (`CotW_Italiano_Setup_0.5.13.exe`)
+**[Scarica l'installer](https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.14/CotW_Italiano_Setup_0.5.14.exe)** (`CotW_Italiano_Setup_0.5.14.exe`)
 
 1. Apri il file scaricato: si installa da solo e mette l'icona **CotW Italiano** sul desktop (non chiede permessi da amministratore).
 2. Vai su **Installa** -> **Scarica e installa**: il programma scarica testo e doppiaggio e li mette nel gioco.
 
-_Preferisci senza installer? Nella [pagina della versione](https://github.com/mirkodls/cotw-italiano/releases/tag/programma-v0.5.13) c'e' anche `CotW_Italiano_0.5.13.zip`: estrai TUTTO lo zip in una cartella e apri `CotW Italiano.exe`._
+_Preferisci senza installer? Nella [pagina della versione](https://github.com/mirkodls/cotw-italiano/releases/tag/programma-v0.5.14) c'e' anche `CotW_Italiano_0.5.14.zip`: estrai TUTTO lo zip in una cartella e apri `CotW Italiano.exe`._
 <!--/scarica-->
 
 Non serve installare altro. Il programma **si aggiorna da solo**: quando esce una versione nuova te lo dice e fa tutto lui.
