@@ -1,7 +1,8 @@
 """Finestra dell'aggiornamento del programma: barra con i MB scaricati, poi l'installer (con la sua barra) e il
 programma si riapre da solo. Cosi' non sembra mai bloccato."""
 import os
-from PySide6.QtCore import Qt, QThread, Signal, QTimer
+from PySide6.QtCore import Qt, QThread, Signal, QTimer, QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QProgressBar, QApplication, QMessageBox
 from ..core import programma
 from .. import VERSIONE
@@ -35,7 +36,8 @@ class Aggiornamento(QDialog):
         self.setWindowFlag(Qt.WindowCloseButtonHint, False)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(24, 20, 24, 20)
-        t = QLabel('Aggiorno CotW Italiano dalla versione %s alla %s' % (VERSIONE, info['versione']))
+        t = QLabel('Aggiorno CotW Italiano dalla versione %s alla %s%s' % (
+            VERSIONE, info['versione'], ' (versione di prova)' if info.get('anteprima') else ''))
         t.setStyleSheet('font-size: 12pt; font-weight: bold;')
         lay.addWidget(t)
         self.testo = QLabel('Scarico la versione nuova...')
@@ -58,11 +60,23 @@ class Aggiornamento(QDialog):
         self.barra.setMaximum(max(b, 1))
         self.barra.setValue(min(a, b))
 
+    def _non_riuscito(self, err):
+        """Ultima spiaggia: oltre a 'riprova', c'e' sempre il link per scaricare a mano dal sito ufficiale."""
+        programma.segna_fallito(err)
+        m = QMessageBox(QMessageBox.Warning, 'Aggiornamento non riuscito',
+                        err + '\n\nIl programma funziona come prima: puoi riprovare piu\' tardi, oppure scaricare a mano '
+                        'l\'ultima versione dal sito ufficiale e installarla sopra questa (impostazioni e traduzione '
+                        'restano).', parent=self)
+        b = m.addButton('Scarica a mano', QMessageBox.AcceptRole)
+        m.addButton('Riprova piu\' tardi', QMessageBox.RejectRole)
+        m.exec()
+        if m.clickedButton() is b:
+            QDesktopServices.openUrl(QUrl(programma.SITO_SCARICA))
+        self.reject()
+
     def _fatto(self, percorso, err):
         if err:
-            QMessageBox.warning(self, 'Aggiornamento non riuscito', err + '\n\nRiprova piu\' tardi: il programma funziona '
-                                'come prima.')
-            return self.reject()
+            return self._non_riuscito(err)
         self.barra.setMaximum(0)
         if percorso.lower().endswith('.exe') and not programma.installato():
             self.testo.setText('Fatto. Ora si apre l\'installazione: scegli dove metterlo (va bene quella proposta), '
@@ -73,10 +87,10 @@ class Aggiornamento(QDialog):
                                'CotW Italiano si riapre da solo...')
         self.adjustSize()
         try:
+            programma.segna_tentativo(self.info)
             programma.installa_e_riavvia(percorso, self.argomenti)
         except Exception as e:
-            QMessageBox.warning(self, 'Aggiornamento non riuscito', str(e))
-            return self.reject()
+            return self._non_riuscito(str(e))
         self.ok = True
         QTimer.singleShot(3000, _chiudi_programma)
 

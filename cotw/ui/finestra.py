@@ -591,6 +591,21 @@ class Finestra(QMainWindow):
         bl.addWidget(b)
         self.banner_prog.hide()
         lay.addWidget(self.banner_prog)
+        # ultima spiaggia: l'aggiornamento automatico non riesce -> link fisso al sito per scaricare a mano
+        self.banner_mano = QFrame()
+        self.banner_mano.setObjectName('banner')
+        bl = QHBoxLayout(self.banner_mano)
+        bl.setContentsMargins(16, 10, 12, 10)
+        self.banner_mano_testo = etichetta('', None, True)
+        bl.addWidget(self.banner_mano_testo, 1)
+        self.banner_mano_prova = bottone('Prova la connessione')
+        self.banner_mano_prova.clicked.connect(self._prova_connessione)
+        bl.addWidget(self.banner_mano_prova)
+        b = bottone('Scarica a mano', 'primario')
+        b.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(programma.SITO_SCARICA)))
+        bl.addWidget(b)
+        self.banner_mano.hide()
+        lay.addWidget(self.banner_mano)
 
         griglia = QGridLayout()
         griglia.setSpacing(14)
@@ -661,10 +676,16 @@ class Finestra(QMainWindow):
         da_agg = [installa.COMPONENTI[c]['nome'] for c, v in conf.items() if v[2] == 'aggiornare']
         self.banner_agg.setVisible(bool(da_agg))
         nuova = programma.disponibile(self.c_online)
-        self.banner_prog.setVisible(bool(nuova))
+        mano = programma.stato_a_mano(self.c_online) if (self.controllato and programma.cartella_exe()) else None
+        self.banner_prog.setVisible(bool(nuova) and mano != 'falliti')
         if nuova:
-            self.banner_prog_testo.setText('E\' uscita la versione %s del programma (tu hai la %s).%s' % (
-                nuova['versione'], VERSIONE, ('  Novita\': ' + ' / '.join(nuova['novita'])) if nuova.get('novita') else ''))
+            self.banner_prog_testo.setText('E\' uscita la versione %s del programma%s (tu hai la %s).%s' % (
+                nuova['versione'], ' (versione di prova)' if nuova.get('anteprima') else '', VERSIONE,
+                ('  Novita\': ' + ' / '.join(nuova['novita'])) if nuova.get('novita') else ''))
+        self.banner_mano.setVisible(bool(mano))
+        if mano:
+            self.banner_mano_testo.setText(programma.TESTI_A_MANO[mano])
+            self.banner_mano_prova.setVisible(mano == 'senza_contatto')
         if da_agg:
             self.banner_testo.setText('E\' disponibile la versione %s della mod (%s).%s' % (
                 self.manifest['versione'], ', '.join(da_agg),
@@ -2029,6 +2050,12 @@ class Finestra(QMainWindow):
         r.addWidget(b)
         r.addStretch(1)
         l.addLayout(r)
+        self.imp_anteprima = QCheckBox('Ricevi le versioni di prova (anteprima)')
+        self.imp_anteprima.setChecked(programma.canale() == 'anteprima')
+        self.imp_anteprima.toggled.connect(self._cambia_canale)
+        l.addWidget(self.imp_anteprima)
+        l.addWidget(etichetta('Solo per chi prova le novita\' prima degli altri: le versioni di prova sono firmate '
+                              'dall\'autore come le altre, ma potrebbero avere qualche errore.', 'tenue'))
         lay.addWidget(f)
 
         f, l = scheda()
@@ -2110,10 +2137,20 @@ class Finestra(QMainWindow):
         self.imp_tasti.setKeySequence(t)
         self.imp_tasti_info.setText('\u2714 Scorciatoia salvata: %s. Vale subito, anche a gioco aperto.' % t)
 
+    def _cambia_canale(self, attivo):
+        cfg = percorsi.leggi_config()
+        if attivo:
+            cfg['canale'] = 'anteprima'
+        else:
+            cfg.pop('canale', None)
+        percorsi.salva_config(cfg)
+        self.aggiorna_tutto()
+
     def _aggiorna_impostazioni_programma(self):
         nuova = programma.disponibile(self.c_online)
         if nuova:
-            self.imp_prog.setText('Hai la versione %s. E\' uscita la %s.' % (VERSIONE, nuova['versione']))
+            self.imp_prog.setText('Hai la versione %s. E\' uscita la %s%s.' % (
+                VERSIONE, nuova['versione'], ' (versione di prova)' if nuova.get('anteprima') else ''))
         else:
             self.imp_prog.setText('Hai la versione %s%s.' % (VERSIONE, ': e\' la piu\' recente' if self.controllato else ''))
         self.imp_prog_b.setVisible(bool(nuova))

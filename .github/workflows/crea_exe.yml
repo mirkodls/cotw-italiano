@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       pubblica:
-        description: "Pubblicala per tutti (il programma si aggiornera' da solo)"
+        description: "Pubblicala in ANTEPRIMA (solo chi ha le versioni di prova). Per tutti: app amministratore, Ripara -> Promuovi"
         type: boolean
         default: false
       nexus:
@@ -38,7 +38,7 @@ jobs:
           python-version: "3.13"
 
       - name: Componenti
-        run: python -m pip install --disable-pip-version-check PySide6==6.10.1 certifi nuitka ordered-set zstandard
+        run: python -m pip install --disable-pip-version-check PySide6==6.10.1 certifi nuitka ordered-set zstandard cryptography
 
       - name: Inno Setup (per l'installer)
         shell: pwsh
@@ -67,6 +67,10 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write('versione=%s\nzip=dist/%s\nnexus=dist/%s\n' % (i['versione'], i['zip'], i.get('setup_zip') or i['zip']))
 
+      # Regola: una versione che non sa aggiornarsi NON esce. Se questa prova fallisce, i passi dopo non partono.
+      - name: Prova automatica (parte? si collega? sa aggiornarsi a una versione piu' nuova? installer ok?)
+        run: python strumenti/prova_aggiornamento.py
+
       - name: Salva il risultato (scaricabile dalla pagina di questa esecuzione)
         uses: actions/upload-artifact@v4
         with:
@@ -76,7 +80,10 @@ jobs:
             dist/*.exe
             dist/programma.json
 
-      - name: Pubblica (Release + online.json)
+      # Va nel blocco "anteprima" di online.json: la vede solo chi ha scelto le versioni di prova (l'autore).
+      # Dopo la firma (Ripara -> Firma) e la prova sul PC, Ripara -> Promuovi copia lo STESSO file nel blocco
+      # "programma" (per tutti) e aggiorna il link Scarica del README.
+      - name: Pubblica in anteprima (Release + online.json)
         if: inputs.pubblica
         env:
           GH_TOKEN: ${{ github.token }}
@@ -97,33 +104,18 @@ jobs:
           subprocess.run(['gh', 'release', 'create', tag] + allegati + ['--title', 'Programma CotW Italiano ' + info['versione'],
                           '--notes', note, '--latest=false'], check=True)
           o = json.load(open('online.json', encoding='utf-8'))
-          o['programma'] = {'versione': info['versione'], 'sha256': info['sha256'], 'dimensione': info['dimensione'],
+          o['anteprima'] = {'versione': info['versione'], 'sha256': info['sha256'], 'dimensione': info['dimensione'],
                             'novita': novita,
                             'url': 'https://github.com/%s/releases/download/%s/%s' % (os.environ['GITHUB_REPOSITORY'], tag, info['zip'])}
           if info.get('setup'):                       # dalla 0.5.3 il programma si aggiorna con l'installer
-              o['programma']['setup_url'] = 'https://github.com/%s/releases/download/%s/%s' % (
+              o['anteprima']['setup_url'] = 'https://github.com/%s/releases/download/%s/%s' % (
                   os.environ['GITHUB_REPOSITORY'], tag, info['setup'])
-              o['programma']['setup_sha256'] = info['setup_sha256']
+              o['anteprima']['setup_sha256'] = info['setup_sha256']
           json.dump(o, open('online.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
-          import re
-          r = open('README.md', encoding='utf-8').read()          # link di download sempre all'ultima versione
-          r = re.sub(r'releases/tag/programma-v[0-9.]+', 'releases/tag/' + tag, r)
-          r = re.sub(r'CotW_Italiano_[0-9.]+[0-9]\.zip', info['zip'], r)
-          if info.get('setup') and '<!--scarica-->' in r:
-              blocco = ('<!--scarica-->\n**[Scarica l\'installer](https://github.com/%s/releases/download/%s/%s)** '
-                        '(`%s`)\n\n1. Apri il file scaricato: si installa da solo e mette l\'icona **CotW Italiano** '
-                        'sul desktop (non chiede permessi da amministratore).\n2. Vai su **Installa** -> **Scarica e '
-                        'installa**: il programma scarica testo e doppiaggio e li mette nel gioco.\n\n'
-                        '_Preferisci senza installer? Nella [pagina della versione](https://github.com/%s/releases/tag/%s) '
-                        'c\'e\' anche `%s`: estrai TUTTO lo zip in una cartella e apri `CotW Italiano.exe`._\n'
-                        '<!--/scarica-->') % (os.environ['GITHUB_REPOSITORY'], tag, info['setup'], info['setup'],
-                                              os.environ['GITHUB_REPOSITORY'], tag, info['zip'])
-              r = re.sub(r'<!--scarica-->.*?<!--/scarica-->', lambda _m: blocco, r, flags=re.S)
-          open('README.md', 'w', encoding='utf-8').write(r)
           for c in (['git', 'config', 'user.name', 'github-actions[bot]'],
                     ['git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'],
-                    ['git', 'add', 'online.json', 'README.md'],
-                    ['git', 'commit', '-m', 'Programma %s pubblicato' % info['versione']],
+                    ['git', 'add', 'online.json'],
+                    ['git', 'commit', '-m', 'Programma %s in anteprima' % info['versione']],
                     ['git', 'pull', '--rebase', 'origin', 'main'],
           ['git', 'push']):
               subprocess.run(c, check=True)

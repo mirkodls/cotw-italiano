@@ -23,6 +23,9 @@ def disinstalla():
 
 
 def main():
+    if '--prova' in sys.argv:                  # prova automatica (GitHub, prima di pubblicare): niente finestre
+        from cotw import prova
+        sys.exit(prova.esegui(sys.argv))
     # avviato senza console (pythonw): gli errori finiscono in un file, cosi' si possono mandare a Claude
     if sys.stderr is None or sys.stdout is None:
         from cotw.core import percorsi
@@ -31,6 +34,11 @@ def main():
         sys.stderr = sys.stdout = log
     if '--disinstalla' in sys.argv:            # dall'installer: toglie il controllo prima di giocare da Steam
         sys.exit(disinstalla())
+    try:                                       # un aggiornamento era partito? e' andato o no (ultima spiaggia)
+        from cotw.core import programma
+        programma.controlla_esito()
+    except Exception:
+        pass
     app = QApplication(sys.argv)
     if '--compagno' in sys.argv:               # mentre giochi: scorciatoia che apre Segnala errore sopra il gioco
         app.setApplicationName('CotW Italiano')
