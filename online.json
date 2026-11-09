@@ -23,5 +23,25 @@
  "servizi": {
   "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
   "firma": "34ce483696ee4998f4d5b52f0dbb33ddef24f6d8ab2c3800e1940d8018ca4be7b9c3f9df583eb3a9b129d34588361099a8fe8cbef67696a168d15f7381122507"
+ },
+ "anteprima": {
+  "versione": "0.5.15",
+  "sha256": "74e768faadb03cdcaf3c4dbe59c74015b3b0c03dbc60a8bd4ee037014d9732e6",
+  "dimensione": 36879644,
+  "novita": [
+   "Nuovo avvio in C#: piccolissimo, parte subito, meno falsi allarmi dell'antivirus",
+   "Gli scaricamenti riprendono da dove si erano fermati se cade la connessione",
+   "Aggiornamenti della mod piu' leggeri (solo i pacchetti piccoli che servono) e piu' veloci da installare",
+   "Il volume del quad non cancella piu' i file di altre mod",
+   "Correzioni e controlli automatici in piu' su tutto il programma"
+  ],
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.15/CotW_Italiano_0.5.15.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.15/CotW_Italiano_Setup_0.5.15.exe",
+  "setup_sha256": "732e0040b41c0f53d025d08320e86e9200026a67647669f1f392a7fddbde5d30",
+  "avvio": {
+   "versione": "2",
+   "sha256": "62d95555d4cea8a60f765756ade7756e14e6bc67bff7cacfe4e645326cc4c6ae",
+   "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.15/CotW_Avvio_2.exe"
+  }
  }
 }
