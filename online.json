@@ -1,30 +1,6 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.14",
-  "sha256": "4c37fca960cf1a48327ea1424d70f828a9216b3fe02e2bb7bb208175558e1740",
-  "dimensione": 36848905,
-  "novita": [
-   "Aggiornamenti che non si rompono: prova automatica di ogni versione prima di pubblicarla",
-   "Avvio separato: aggiorna il programma e, se la versione nuova non parte, torna da solo a quella di prima",
-   "Versioni di prova (anteprima) in Impostazioni",
-   "Se l'aggiornamento automatico non riesce: pulsante Scarica a mano"
-  ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.14/CotW_Italiano_0.5.14.zip",
-  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.14/CotW_Italiano_Setup_0.5.14.exe",
-  "setup_sha256": "f7235f1cf43844c78b9a9429bcd6ccbe8e91fa268c27e12f5029fbd445287a1b",
-  "avvio": {
-   "versione": "1",
-   "sha256": "e32d8169c22bb8abca8de5b32411a921569eb20cca749d6cef95774aa94ff93b",
-   "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.14/CotW_Avvio_1.exe"
-  },
-  "firma": "949ff965e1dcfc43de0ce565b87b7e5dc92da5e4f75a2d4a37c153bf1e45f1e1a6b4c59996d61512c01499654df36883df7e5b4f3a36c06c2428bdecf966c607"
- },
- "servizi": {
-  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
-  "firma": "34ce483696ee4998f4d5b52f0dbb33ddef24f6d8ab2c3800e1940d8018ca4be7b9c3f9df583eb3a9b129d34588361099a8fe8cbef67696a168d15f7381122507"
- },
- "anteprima": {
   "versione": "0.5.15",
   "sha256": "74e768faadb03cdcaf3c4dbe59c74015b3b0c03dbc60a8bd4ee037014d9732e6",
   "dimensione": 36879644,
@@ -44,5 +20,9 @@
    "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.15/CotW_Avvio_2.exe"
   },
   "firma": "9c0c6012481e6f8472a78774e798bec14dc7bd45f4a5f3a2d3aa41302c656d9564988a50440914d01a1ec9729edaf5c30c78aa543755968c1b74942e291ee205"
+ },
+ "servizi": {
+  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
+  "firma": "34ce483696ee4998f4d5b52f0dbb33ddef24f6d8ab2c3800e1940d8018ca4be7b9c3f9df583eb3a9b129d34588361099a8fe8cbef67696a168d15f7381122507"
  }
 }
