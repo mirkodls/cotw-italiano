@@ -15,7 +15,8 @@ IS_WIN = sys.platform.startswith('win')
 
 def dati_app():
     """Cartella dei dati del programma (impostazioni, stato, backup)."""
-    base = os.environ.get('APPDATA') if IS_WIN else os.path.expanduser('~/.config')
+    base = (os.environ.get('APPDATA') or os.path.expanduser(r'~\AppData\Roaming')) if IS_WIN \
+        else os.path.expanduser('~/.config')
     if os.environ.get('COTW_DATI'):          # solo per le prove
         base = os.environ['COTW_DATI']
     d = os.path.join(base, NOME_APP)
@@ -103,11 +104,29 @@ def trova_gioco():
         p = os.path.join(lib, 'steamapps', 'common', 'theHunterCotW')
         if e_cartella_gioco(p):
             return p
-    # Epic Games
+    # Epic Games: prima i "manifest" del launcher (sanno dov'e' installato, anche su altri dischi)
+    for p in _cartelle_epic():
+        if e_cartella_gioco(p):
+            return p
     for p in glob.glob(r'C:\Program Files\Epic Games\theHunter*') + glob.glob(r'C:\Program Files\Epic Games\*Hunter*'):
         if e_cartella_gioco(p):
             return p
     return None
+
+
+def _cartelle_epic():
+    out = []
+    base = os.path.join(os.environ.get('PROGRAMDATA', r'C:\ProgramData'), 'Epic', 'EpicGamesLauncher', 'Data', 'Manifests')
+    for f in glob.glob(os.path.join(base, '*.item')):
+        try:
+            with open(f, encoding='utf-8', errors='ignore') as x:
+                m = json.load(x)
+            loc = m.get('InstallLocation') or ''
+            if 'hunter' in (m.get('DisplayName', '') + loc).lower():
+                out.append(os.path.normpath(loc))
+        except Exception:
+            pass
+    return out
 
 
 def dropzone(gioco):
@@ -123,15 +142,54 @@ def mod_attiva(gioco):
     return os.path.isdir(os.path.join(gioco, 'dropzone'))
 
 
-def gioco_in_esecuzione():
+def processi_attivi():
+    """Nomi (minuscoli) dei programmi aperti. Chiede l'elenco direttamente a Windows (pochi millesimi di secondo,
+    senza aprire tasklist ogni 5 secondi); se non riesce usa tasklist."""
     if not IS_WIN:
-        return False
+        return set()
     try:
-        out = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq ' + EXE_GIOCO, '/NH'],
-                             capture_output=True, text=True, creationflags=0x08000000).stdout
-        return EXE_GIOCO.lower() in out.lower()
+        import ctypes
+        from ctypes import wintypes
+
+        class PE(ctypes.Structure):
+            _fields_ = [('dwSize', wintypes.DWORD), ('cntUsage', wintypes.DWORD), ('th32ProcessID', wintypes.DWORD),
+                        ('th32DefaultHeapID', ctypes.c_size_t), ('th32ModuleID', wintypes.DWORD),
+                        ('cntThreads', wintypes.DWORD), ('th32ParentProcessID', wintypes.DWORD),
+                        ('pcPriClassBase', ctypes.c_long), ('dwFlags', wintypes.DWORD),
+                        ('szExeFile', ctypes.c_wchar * 260)]
+        k = ctypes.windll.kernel32
+        k.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+        snap = k.CreateToolhelp32Snapshot(0x2, 0)
+        if not snap or snap == wintypes.HANDLE(-1).value:
+            raise OSError('snapshot')
+        try:
+            e = PE()
+            e.dwSize = ctypes.sizeof(PE)
+            out = set()
+            ok = k.Process32FirstW(snap, ctypes.byref(e))
+            while ok:
+                out.add(e.szExeFile.lower())
+                ok = k.Process32NextW(snap, ctypes.byref(e))
+            if not out:
+                raise OSError('vuoto')
+            return out
+        finally:
+            k.CloseHandle(snap)
     except Exception:
-        return False
+        try:
+            r = subprocess.run(['tasklist', '/FO', 'CSV', '/NH'], capture_output=True, text=True,
+                               creationflags=0x08000000).stdout
+            return {riga.split('","')[0].strip('"').lower() for riga in r.splitlines() if riga.strip()}
+        except Exception:
+            return set()
+
+
+def processo_attivo(nome):
+    return nome.lower() in processi_attivi()
+
+
+def gioco_in_esecuzione():
+    return processo_attivo(EXE_GIOCO)
 
 
 # ---------------- salvataggi ----------------

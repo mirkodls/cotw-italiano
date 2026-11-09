@@ -4,7 +4,10 @@ e la firma dell'autore su versione.json (cotw/core/firma.py)."""
 import os
 import ssl
 import json
+import time
 import hashlib
+import http.client
+import urllib.error
 import urllib.request
 from . import firma
 
@@ -83,41 +86,80 @@ def leggi_manifest(timeout=20):
         if e.code == 404:
             return None
         raise RuntimeError('GitHub ha risposto con un errore (%d). Riprova piu\' tardi.' % e.code)
-    except urllib.error.URLError:
+    except (urllib.error.URLError, OSError, http.client.HTTPException):
         raise RuntimeError('Non riesco a collegarmi a GitHub: controlla la connessione a internet.')
+    except ValueError:
+        raise RuntimeError('GitHub ha mandato un file delle versioni rovinato. Riprova tra qualche minuto.')
 
 
-def scarica(url, destinazione, sha_atteso=None, avanzamento=None, fermati=None):
-    """Scarica in destinazione (prima in .part). avanzamento(byte_fatti, byte_totali). Controlla lo SHA-256."""
+def scarica(url, destinazione, sha_atteso=None, avanzamento=None, fermati=None, tentativi=4):
+    """Scarica in destinazione (prima in .part). avanzamento(byte_fatti, byte_totali). Controlla lo SHA-256.
+    Se la connessione cade riprende da dove era arrivato (fino a 'tentativi' volte, anche alla volta dopo)."""
     os.makedirs(os.path.dirname(destinazione), exist_ok=True)
     if sha_atteso and os.path.isfile(destinazione) and sha256_file(destinazione) == sha_atteso:
         return destinazione                      # gia' scaricato e integro
     part = destinazione + '.part'
-    h = hashlib.sha256()
+    ultimo = None
+    for n in range(tentativi):
+        try:
+            _scarica_pezzo(url, part, avanzamento, fermati)
+            break
+        except _Interrotto:
+            raise RuntimeError('Scaricamento interrotto.')
+        except urllib.error.HTTPError as e:
+            if e.code == 416:                    # il pezzo salvato non va bene (file cambiato online): da capo
+                _togli(part)
+                ultimo = e
+                continue
+            raise RuntimeError('Il file non si scarica (errore %d): %s' % (e.code, url))
+        except (urllib.error.URLError, OSError, http.client.HTTPException) as e:
+            ultimo = e
+            time.sleep(min(2 * (n + 1), 6))
+    else:
+        raise RuntimeError('Connessione interrotta durante lo scaricamento (%s). Riprova: ripartira\' da dove si e\' '
+                           'fermato.' % type(ultimo).__name__)
+    if sha_atteso and sha256_file(part) != sha_atteso:
+        _togli(part)
+        raise RuntimeError('Il file scaricato e\' rovinato (controllo di integrita\' fallito). Riprova.')
+    os.replace(part, destinazione)
+    return destinazione
+
+
+class _Interrotto(Exception):
+    pass
+
+
+def _togli(p):
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=_UA), timeout=60) as r, open(part, 'wb') as f:
-            tot = int(r.headers.get('Content-Length') or 0)
-            fatti = 0
+        os.remove(p)
+    except OSError:
+        pass
+
+
+def _scarica_pezzo(url, part, avanzamento, fermati):
+    """Scarica (o continua a scaricare) in part. Usa Range se c'e' gia' un pezzo."""
+    gia = os.path.getsize(part) if os.path.isfile(part) else 0
+    h = dict(_UA)
+    if gia:
+        h['Range'] = 'bytes=%d-' % gia
+    with urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=60) as r:
+        if gia and r.status != 206:              # il server non riprende: da capo
+            gia = 0
+        tot = int(r.headers.get('Content-Length') or 0) + gia
+        fatti = gia
+        with open(part, 'ab' if gia else 'wb') as f:
             while True:
                 if fermati and fermati():
-                    raise RuntimeError('Scaricamento interrotto.')
+                    raise _Interrotto()
                 b = r.read(1 << 18)
                 if not b:
                     break
                 f.write(b)
-                h.update(b)
                 fatti += len(b)
                 if avanzamento:
                     avanzamento(fatti, tot)
-    except urllib.error.HTTPError as e:
-        raise RuntimeError('Il file non si scarica (errore %d): %s' % (e.code, url))
-    except urllib.error.URLError:
-        raise RuntimeError('Connessione interrotta durante lo scaricamento. Riprova.')
-    if sha_atteso and h.hexdigest() != sha_atteso:
-        os.remove(part)
-        raise RuntimeError('Il file scaricato e\' rovinato (controllo di integrita\' fallito). Riprova.')
-    os.replace(part, destinazione)
-    return destinazione
+        if tot > gia and fatti < tot:
+            raise http.client.IncompleteRead(b'', tot - fatti)
 
 
 def url_online():

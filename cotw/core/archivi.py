@@ -47,15 +47,20 @@ def hashlittle(testo):
 def trova(gioco, percorso_interno):
     """Cerca un file negli archivi del gioco. Restituisce (file_arc, offset, dimensione) o None."""
     h = hashlittle(percorso_interno)
+    chiave = struct.pack('<I', h)
     for tab in sorted(glob.glob(os.path.join(gioco, 'archives_win64', 'game*.tab'))):
         try:
-            b = open(tab, 'rb').read()
+            with open(tab, 'rb') as f:
+                b = f.read()
         except OSError:
             continue
-        for i in range(12, len(b) - 11, 12):
-            hh, o, s = struct.unpack_from('<III', b, i)
-            if hh == h:
+        # ricerca veloce (in C) invece di leggere le voci una per una: valida solo se cade all'inizio di una voce
+        i = b.find(chiave, 12)
+        while i != -1 and i <= len(b) - 12:
+            if (i - 12) % 12 == 0:
+                _hh, o, s = struct.unpack_from('<III', b, i)
                 return tab[:-4] + '.arc', o, s
+            i = b.find(chiave, i + 1)
     return None
 
 

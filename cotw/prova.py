@@ -50,6 +50,18 @@ def _qt():
     return app.platformName()
 
 
+def _processi():
+    """Elenco dei programmi aperti chiesto direttamente a Windows: deve contenere almeno questo programma."""
+    from cotw.core import percorsi
+    if sys.platform != 'win32':
+        return 'non Windows'
+    p = percorsi.processi_attivi()
+    io = os.path.basename(sys.executable).lower()
+    if not p or io not in p:
+        raise RuntimeError('elenco dei programmi aperti sbagliato (%d, %s non c\'e\')' % (len(p), io))
+    return '%d programmi aperti' % len(p)
+
+
 def _certificati():
     """Solo i certificati inclusi nel programma (certifi), come su un Windows a cui mancano: deve funzionare lo stesso."""
     import ssl
@@ -152,6 +164,7 @@ def esegui(argv):
     rapporto = {'versione': VERSIONE, 'exe': sys.executable, 'passi': []}
     _passo(rapporto, 'pezzi del programma (moduli)', _moduli)
     _passo(rapporto, 'finestre (Qt)', _qt)
+    _passo(rapporto, 'programmi aperti (Windows)', _processi)
     if chiave:
         _passo(rapporto, 'aggiornamento a una versione finta piu\' nuova', lambda: _aggiorna_a_finta(chiave))
     else:

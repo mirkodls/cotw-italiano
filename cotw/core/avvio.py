@@ -132,14 +132,7 @@ def file_config_steam():
 
 
 def steam_in_esecuzione():
-    if not percorsi.IS_WIN:
-        return False
-    try:
-        out = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq steam.exe', '/NH'],
-                             capture_output=True, text=True, creationflags=0x08000000).stdout
-        return 'steam.exe' in out.lower()
-    except Exception:
-        return False
+    return percorsi.processo_attivo('steam.exe')
 
 
 def exe_steam():

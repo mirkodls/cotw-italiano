@@ -15,6 +15,7 @@ da li' l'installazione copia nella dropzone solo cio' che serve."""
 import os
 import json
 import shutil
+import hashlib
 import zipfile
 from . import percorsi, rete, installa, firma
 
@@ -36,14 +37,16 @@ def _file_indice():
 
 def _leggi_indice():
     try:
-        return json.load(open(_file_indice(), encoding='utf-8'))
+        with open(_file_indice(), encoding='utf-8') as f:
+            return json.load(f)
     except Exception:
         return {}
 
 
 def _salva_indice(ind):
     tmp = _file_indice() + '.tmp'
-    json.dump(ind, open(tmp, 'w', encoding='utf-8'))
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(ind, f)
     os.replace(tmp, _file_indice())
 
 
@@ -77,16 +80,22 @@ def mancanti(manifest, comp, avanzamento=None):
     return out
 
 
-def scegli_pacchetti(manifest, comp, servono):
-    """Il minimo da scaricare: un aggiornamento piccolo se basta, altrimenti la base completa (+ aggiornamenti)."""
+def scegli_pacchetti(manifest, comp, servono, completo=False):
+    """Il minimo da scaricare: un aggiornamento piccolo se basta, poi piu' aggiornamenti piccoli insieme (nell'ordine
+    in cui sono usciti), e solo se non bastano la base completa (+ aggiornamenti).
+    completo=True: direttamente base + aggiornamenti (si usa se i piccoli non sono bastati)."""
     pac = manifest['componenti'][comp]['pacchetti']
     if not servono:
         return []
     s = set(servono)
-    piccoli = [p for p in pac if p.get('contiene') != 'tutto']
-    for p in sorted(piccoli, key=lambda p: p.get('dimensione', 0)):
-        if s <= set(p['contiene']):
-            return [p]
+    piccoli = [p for p in pac if p.get('contiene') != 'tutto' and isinstance(p.get('contiene'), list)]
+    if not completo:
+        for p in sorted(piccoli, key=lambda p: p.get('dimensione', 0)):
+            if s <= set(p['contiene']):
+                return [p]
+        utili = [p for p in piccoli if s & set(p['contiene'])]
+        if utili and s <= set().union(*(set(p['contiene']) for p in utili)):
+            return utili                          # nell'ordine del manifest: i piu' nuovi sopra i piu' vecchi
     completi = [p for p in pac if p.get('contiene') == 'tutto']
     if not completi:
         raise RuntimeError('Nella versione online manca il pacchetto completo di "%s".' % installa.COMPONENTI[comp]['nome'])
@@ -122,7 +131,31 @@ def aggiorna_cache(manifest, comp, avanzamento=None, fermati=None, dz=None):
     voce = manifest['componenti'][comp]
     servono = mancanti(manifest, comp, avanzamento)
     servono = _riusa_dalla_dropzone(manifest, comp, dz, servono, avanzamento)
-    pacchetti = scegli_pacchetti(manifest, comp, servono)
+    scelti = scegli_pacchetti(manifest, comp, servono)
+    mb = _scarica_ed_estrai(manifest, comp, scelti, servono, avanzamento, fermati)
+    _togli_vecchi(voce, _radice_comp(comp))
+    rimasti = mancanti(manifest, comp)
+    if rimasti and not any(p.get('contiene') == 'tutto' for p in scelti):
+        # gli aggiornamenti piccoli non sono bastati (es. un file cambiato in piu' versioni): base completa
+        mb += _scarica_ed_estrai(manifest, comp, scegli_pacchetti(manifest, comp, rimasti, completo=True), rimasti,
+                                 avanzamento, fermati)
+        rimasti = mancanti(manifest, comp)
+    if rimasti:
+        raise RuntimeError('Dopo lo scaricamento %d file non corrispondono alla versione online. Riprova.' % len(rimasti))
+    return mb
+
+
+def _togli_vecchi(voce, radice):
+    """File della cache che nella nuova versione non ci sono piu'."""
+    for cart, _, files in os.walk(radice):
+        for n in files:
+            rel = os.path.relpath(os.path.join(cart, n), radice).replace(os.sep, '/')
+            if rel not in voce['file']:
+                os.remove(os.path.join(cart, n))
+
+
+def _scarica_ed_estrai(manifest, comp, pacchetti, servono, avanzamento=None, fermati=None):
+    voce = manifest['componenti'][comp]
     servono = set(servono)
     radice = _radice_comp(comp)
     zipdir = os.path.join(cartella_cache(), '_zip')
@@ -144,25 +177,21 @@ def aggiorna_cache(manifest, comp, avanzamento=None, fermati=None, dz=None):
                     continue
                 out = os.path.join(radice, *rel.split('/'))
                 os.makedirs(os.path.dirname(out), exist_ok=True)
+                hs = hashlib.sha256()
                 with z.open(m) as src, open(out + '.tmp', 'wb') as dst:
                     while True:
                         b = src.read(1 << 20)
                         if not b:
                             break
                         dst.write(b)
+                        hs.update(b)
+                if hs.hexdigest() != voce['file'][rel]:
+                    os.remove(out + '.tmp')          # versione diversa da quella online (es. pacchetto piu' vecchio)
+                    continue
                 os.replace(out + '.tmp', out)
                 if avanzamento and i % 100 == 0:
                     avanzamento(i, len(membri), 'Estraggo %s' % nome)
         os.remove(dest)                          # lo zip non serve piu'
-    # file vecchi che nella nuova versione non ci sono piu'
-    for cart, _, files in os.walk(radice):
-        for n in files:
-            rel = os.path.relpath(os.path.join(cart, n), radice).replace(os.sep, '/')
-            if rel not in voce['file']:
-                os.remove(os.path.join(cart, n))
-    rimasti = mancanti(manifest, comp)
-    if rimasti:
-        raise RuntimeError('Dopo lo scaricamento %d file non corrispondono alla versione online. Riprova.' % len(rimasti))
     return mb
 
 

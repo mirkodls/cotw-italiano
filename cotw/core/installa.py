@@ -155,6 +155,21 @@ def _uguali(a, b):
         return False
 
 
+def _gia_copiato(src, dst):
+    """Veloce: stessa dimensione e stessa data al nanosecondo (la copia la conserva, vedi shutil.copy2) = file gia'
+    copiato da noi.
+    Altrimenti confronto completo. Con 6000 voci evita di rileggere GB di file a ogni aggiornamento."""
+    try:
+        a, b = os.stat(src), os.stat(dst)
+    except OSError:
+        return False
+    if a.st_size != b.st_size:
+        return False
+    if a.st_mtime_ns == b.st_mtime_ns:
+        return True
+    return _uguali(src, dst)
+
+
 def installa(comp, sorgente, dz, avanzamento=None, fermati=None, versione=None):
     """Copia i file del componente nella dropzone. avanzamento(fatti, totale, testo).
     Restituisce (file del componente, file copiati davvero)."""
@@ -171,33 +186,47 @@ def installa(comp, sorgente, dz, avanzamento=None, fermati=None, versione=None):
     registrati = {}
     copiati = 0
     tot = len(fl)
-    for i, rel in enumerate(fl):
-        if fermati and fermati():
-            break
-        src = os.path.join(pac, *rel.split('/'))
-        dst = os.path.join(dz, *rel.split('/'))
-        if os.path.isfile(dst) and rel not in gia_miei and rel not in altri_miei and rel not in backup:
-            # c'era un file non nostro: se e' uguale al nostro lo consideriamo nostro, altrimenti backup
-            if not _uguali(src, dst):
-                b = os.path.join(bdir, *rel.split('/'))
-                os.makedirs(os.path.dirname(b), exist_ok=True)
-                shutil.copy2(dst, b)
-                backup[rel] = b
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        if not (os.path.isfile(dst) and _uguali(src, dst)):
-            shutil.copyfile(src, dst)
-            copiati += 1
-        registrati[rel] = os.path.getsize(src)
-        if avanzamento and (i % 25 == 0 or i == tot - 1):
-            avanzamento(i + 1, tot, rel)
-    # i file nostri della versione precedente che non ci sono piu' nel pacchetto vanno tolti
-    for rel in gia_miei - set(registrati):
-        if fermati and fermati():
-            break
-        _togli(dz, rel, backup)
-    stato['componenti'][comp] = {'file': registrati, 'backup': backup, 'versione': versione,
-                                 'installato_il': time.strftime('%Y-%m-%d %H:%M'), 'sorgente': sorgente}
-    salva_stato(stato)
+    completo = False
+    try:
+        for i, rel in enumerate(fl):
+            if fermati and fermati():
+                break
+            src = os.path.join(pac, *rel.split('/'))
+            dst = os.path.join(dz, *rel.split('/'))
+            if os.path.isfile(dst) and rel not in gia_miei and rel not in altri_miei and rel not in backup:
+                # c'era un file non nostro: se e' uguale al nostro lo consideriamo nostro, altrimenti backup
+                if not _uguali(src, dst):
+                    b = os.path.join(bdir, *rel.split('/'))
+                    os.makedirs(os.path.dirname(b), exist_ok=True)
+                    shutil.copy2(dst, b)
+                    backup[rel] = b
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if not (os.path.isfile(dst) and _gia_copiato(src, dst)):
+                tmp = dst + '.cotw_tmp'
+                shutil.copy2(src, tmp)               # copia con la data: la prossima volta il confronto e' immediato
+                os.replace(tmp, dst)
+                copiati += 1
+            registrati[rel] = os.path.getsize(src)
+            if avanzamento and (i % 25 == 0 or i == tot - 1):
+                avanzamento(i + 1, tot, rel)
+        else:
+            completo = True
+        # i file nostri della versione precedente che non ci sono piu' nel pacchetto vanno tolti
+        if completo:
+            for rel in gia_miei - set(registrati):
+                _togli(dz, rel, backup)
+    finally:
+        # anche se si ferma a meta' (o c'e' un errore) lo stato resta giusto: i file vecchi non ancora sostituiti
+        # restano "nostri" (altrimenti alla volta dopo sembrerebbero di un'altra mod) e i backup non si perdono
+        if not completo:
+            for rel, dim in (vecchio.get('file') or {}).items():
+                registrati.setdefault(rel, dim)
+        stato['componenti'][comp] = {'file': registrati, 'backup': backup,
+                                     'versione': versione if completo else vecchio.get('versione'),
+                                     'installato_il': time.strftime('%Y-%m-%d %H:%M'), 'sorgente': sorgente}
+        if not completo:
+            stato['componenti'][comp]['incompleto'] = True
+        salva_stato(stato)
     return len(registrati), copiati
 
 

@@ -136,7 +136,7 @@ def genera(chiave, doc, b):
             if cod in (401, 403):
                 raise RuntimeError('ElevenLabs non accetta la chiave (%d): serve il permesso "Text to Speech".' % cod)
             raise RuntimeError('ElevenLabs ha risposto con un errore (%d): %s' % (cod, t[:200]))
-        except urllib.error.URLError:
+        except (urllib.error.URLError, OSError):     # anche "tempo scaduto" a meta' risposta
             time.sleep(5 * (tentativo + 1))
     raise RuntimeError('ElevenLabs non risponde: riprova piu\' tardi.')
 
@@ -149,7 +149,8 @@ def elenco(manifest):
         return None
     dest = os.path.join(aggiornamenti.cartella_cache(), 'da_doppiare.json')
     rete.scarica(rete.url_pacchetto(d['tag'], d['nome']), dest, d.get('sha256'))
-    return json.load(open(dest, encoding='utf-8'))
+    with open(dest, encoding='utf-8') as f:
+        return json.load(f)
 
 
 def _postino():
@@ -223,33 +224,42 @@ def doppia(chiave, doc, chi, avanzamento=None, fermati=None, massimo=None):
     if not ids:
         return 0, 'In questo momento tutte le battute sono gia\' fatte o prenotate da altri. Grazie lo stesso!'
     fatte, spesi, motivo, consegnate = 0, 0, '', set()
-    for n, i in enumerate(ids):
-        if fermati and fermati():
-            motivo = 'Interrotto da te.'
-            break
-        b = per_id[i]
-        if cr is not None and spesi + len(b['testo']) > cr - MARGINE:
-            motivo = 'Crediti del mese quasi finiti: mi fermo qui.'
-            break
+    try:
+        for n, i in enumerate(ids):
+            if fermati and fermati():
+                motivo = 'Interrotto da te.'
+                break
+            b = per_id[i]
+            if cr is not None and spesi + len(b['testo']) > cr - MARGINE:
+                motivo = 'Crediti del mese quasi finiti: mi fermo qui.'
+                break
+            if avanzamento:
+                avanzamento(n, len(ids), '%s: %s' % (b.get('chi', ''), b.get('sottotitolo', b['testo'])[:60]))
+            try:
+                mp3 = genera(chiave, doc, b)
+            except CreditiFiniti:
+                motivo = 'Crediti del mese finiti: mi fermo qui.'
+                break
+            spesi += len(b['testo'])
+            _post('%s/contributi/audio?%s' % (post, urllib.parse.urlencode({'id': i, 'chi': chi})), dati=mp3, timeout=60)
+            fatte += 1
+            consegnate.add(i)
         if avanzamento:
-            avanzamento(n, len(ids), '%s: %s' % (b.get('chi', ''), b.get('sottotitolo', b['testo'])[:60]))
-        try:
-            mp3 = genera(chiave, doc, b)
-        except CreditiFiniti:
-            motivo = 'Crediti del mese finiti: mi fermo qui.'
-            break
-        spesi += len(b['testo'])
-        _post('%s/contributi/audio?%s' % (post, urllib.parse.urlencode({'id': i, 'chi': chi})), dati=mp3, timeout=60)
-        fatte += 1
-        consegnate.add(i)
-    if avanzamento:
-        avanzamento(len(ids), len(ids), 'Fatto')
-    resto = [i for i in ids if i not in consegnate]
-    if resto:                                   # le battute non fatte tornano subito libere per gli altri
-        try:
-            _post(post + '/contributi/libera', {'chi': chi, 'ids': resto})
-        except Exception:
-            pass
+            avanzamento(len(ids), len(ids), 'Fatto')
+    finally:
+        # anche se c'e' un errore a meta': le battute non fatte tornano subito libere e quelle fatte restano contate
+        resto = [i for i in ids if i not in consegnate]
+        if resto:
+            try:
+                _post(post + '/contributi/libera', {'chi': chi, 'ids': resto})
+            except Exception:
+                pass
+        if fatte:
+            _registra_fatte(post, chi, doc, fatte, consegnate)
+    return fatte, motivo
+
+
+def _registra_fatte(post, chi, doc, fatte, consegnate):
     if fatte:
         try:
             _post(post + '/contributi/fine', {'chi': chi, 'fatte': fatte})
@@ -261,4 +271,3 @@ def doppia(chiave, doc, chi, avanzamento=None, fermati=None, massimo=None):
         v = str(doc.get('versione', '?'))
         mie[v] = sorted(set(mie.get(v, [])) | consegnate)
         percorsi.salva_config(conta)
-    return fatte, motivo

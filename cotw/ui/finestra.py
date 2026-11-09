@@ -1509,7 +1509,7 @@ class Finestra(QMainWindow):
 
         def lavoro(av):
             if v == 100:
-                quad.ripristina(dz)
+                quad.ripristina(dz, gioco)
                 return 'Quad al volume originale.'
             return 'Volume del quad impostato al %d%% (%d suoni). Vale dal prossimo avvio del gioco.' % (v, quad.applica(gioco, dz, v))
         self._avvia(lavoro)
@@ -1517,7 +1517,7 @@ class Finestra(QMainWindow):
     def _quad_originale(self):
         if not self._pronto():
             return
-        quad.ripristina(self.dz())
+        quad.ripristina(self.dz(), self.gioco)
         self._quad_toccato = False
         self.statusBar().showMessage('Quad tornato al suono originale.')
         self.aggiorna_tutto()

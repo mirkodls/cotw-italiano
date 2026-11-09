@@ -371,7 +371,8 @@ def aggiorna_avvio(info, barra):
     try:
         r = subprocess.run([nuovo, '--prova-avvio', rap, '--senza-internet'], timeout=180,
                            creationflags=0x08000000 if IS_WIN else 0)
-        esito = json.load(open(rap, encoding='utf-8'))
+        with open(rap, encoding='utf-8') as f:
+            esito = json.load(f)
         if r.returncode != 0 or not esito.get('ok'):
             raise RuntimeError('la prova dell\'avvio nuovo non e\' riuscita')
     except Exception as e:

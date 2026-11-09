@@ -31,7 +31,11 @@ def battute():
     except OSError:
         return []
     if _CACHE['mtime'] != mt:
-        dati = json.load(open(p, encoding='utf-8'))
+        try:
+            with open(p, encoding='utf-8') as f:
+                dati = json.load(f)
+        except (OSError, ValueError):
+            return []                            # file rovinato/a meta': alla prossima scaricata si sistema
         for b in dati:
             b['_n'] = _norm(b.get('it', '') + ' ' + b.get('chi', ''))
         _CACHE.update(mtime=mt, righe=dati)
@@ -122,7 +126,8 @@ def _file(nome):
 
 def _leggi(nome, vuoto):
     try:
-        return json.load(open(_file(nome), encoding='utf-8'))
+        with open(_file(nome), encoding='utf-8') as f:
+            return json.load(f)
     except Exception:
         return vuoto
 
@@ -130,7 +135,8 @@ def _leggi(nome, vuoto):
 def _scrivi(nome, dati):
     try:
         tmp = _file(nome) + '.tmp'
-        json.dump(dati, open(tmp, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(dati, f, ensure_ascii=False, indent=1)
         os.replace(tmp, _file(nome))
     except OSError:
         pass
