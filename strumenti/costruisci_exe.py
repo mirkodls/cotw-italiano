@@ -77,6 +77,39 @@ def con_pyinstaller(ver, build):
     return os.path.join(build, 'out', NOME)
 
 
+def trova_csc():
+    """Compilatore C# di .NET Framework 4 (c'e' su ogni Windows: niente da installare)."""
+    win = os.environ.get('WINDIR', r'C:\Windows')
+    for c in (os.path.join(win, 'Microsoft.NET', 'Framework64', 'v4.0.30319', 'csc.exe'),
+              os.path.join(win, 'Microsoft.NET', 'Framework', 'v4.0.30319', 'csc.exe')):
+        if os.path.isfile(c):
+            return c
+    return shutil.which('csc') or shutil.which('mcs')
+
+
+def avvio_csharp(av, build):
+    """L'AVVIO in C# (avvio_cs/Avvio.cs): exe di poche decine di KB, parte subito, meno falsi allarmi antivirus."""
+    src = os.path.join(RADICE, 'avvio_cs', 'Avvio.cs')
+    m = re.search(r'AVVIO_VERSIONE\s*=\s*"([^"]+)"', open(src, encoding='utf-8').read())
+    if not m or m.group(1) != av:
+        sys.exit('ERRORE: AVVIO_VERSIONE in avvio_cs/Avvio.cs (%s) diversa da avvio/__init__.py (%s)'
+                 % (m.group(1) if m else '?', av))
+    csc = trova_csc()
+    if not csc:
+        sys.exit('ERRORE: non trovo il compilatore C# (csc.exe di .NET Framework)')
+    os.makedirs(build, exist_ok=True)
+    out = os.path.join(build, NOME + '.exe')
+    cmd = [csc, '/nologo', '/target:winexe', '/optimize+', '/platform:anycpu', '/out:' + out,
+           '/win32icon:' + os.path.join(RADICE, 'risorse', 'icona.ico'),
+           '/r:System.Web.Extensions.dll', '/r:System.IO.Compression.dll', '/r:System.IO.Compression.FileSystem.dll',
+           '/r:System.Numerics.dll', '/r:System.Windows.Forms.dll', '/r:System.Drawing.dll', src]
+    if os.path.basename(csc).lower().startswith('mcs'):
+        cmd = [c.replace('/', '-', 1) if c.startswith('/') and ':' in c[:12] else c for c in cmd]
+        cmd.insert(1, '-langversion:5')
+    esegui(cmd)
+    return out
+
+
 def avvio_nuitka(av, build):
     """L'AVVIO: un solo file exe (onefile), piccolo, senza Qt. Si estrae una volta nella cache e poi parte subito."""
     v4 = '.'.join(map(str, quattro(av)))
@@ -126,6 +159,8 @@ def installer(ver, finale, dist, avvio_exe):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--metodo', choices=['nuitka', 'pyinstaller'], default='nuitka')
+    ap.add_argument('--avvio', choices=['csharp', 'python'], default='csharp',
+                    help='AVVIO in C# (predefinito, dalla 0.5.15) o in Python (come la 0.5.14)')
     a = ap.parse_args()
     ver = versione()
     build = os.path.join(RADICE, 'build')
@@ -153,7 +188,10 @@ def main():
     av = versione_avvio()
     build_av = os.path.join(RADICE, 'build_avvio')
     shutil.rmtree(build_av, ignore_errors=True)
-    fatto_av = avvio_nuitka(av, build_av) if a.metodo == 'nuitka' else avvio_pyinstaller(av, build_av)
+    if a.avvio == 'csharp':
+        fatto_av = avvio_csharp(av, build_av)
+    else:
+        fatto_av = avvio_nuitka(av, build_av) if a.metodo == 'nuitka' else avvio_pyinstaller(av, build_av)
     if os.name == 'nt' and not os.path.isfile(fatto_av):
         sys.exit('ERRORE: manca l\'avvio %s' % fatto_av)
     avvio_exe = os.path.join(dist, 'avvio', NOME + '.exe')

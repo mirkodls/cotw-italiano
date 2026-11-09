@@ -138,6 +138,44 @@ def prove_avvio(dist, lavoro, base, pubblica, risultati):
     print('  stato dopo:', st)
     risultati['avvio: torna da solo indietro da una versione rotta'] = (
         ok and st.get('attuale') == '99.0.0' and '99.5.0' in (st.get('rotte') or []))
+    prova_avvio_vecchio(dist, lavoro, base, pubblica, info, risultati)
+
+
+def prova_avvio_vecchio(dist, lavoro, base, pubblica, info, risultati):
+    """Chi ha l'avvio della versione pubblica (0.5.14 = avvio Python "1") deve passare da solo all'avvio nuovo:
+    lo scarica accanto, lo prova e lo scambia. Alla fine "CotW Italiano.exe" deve essere l'avvio NUOVO."""
+    import urllib.request
+    try:
+        rel = json.loads(urllib.request.urlopen(urllib.request.Request(
+            'https://api.github.com/repos/mirkodls/cotw-italiano/releases/tags/programma-v0.5.14',
+            headers={'User-Agent': 'CotW-prova'}), timeout=30).read())
+        url = next(x['browser_download_url'] for x in rel['assets'] if x['name'].startswith('CotW_Avvio_'))
+    except Exception as e:
+        print('avvio vecchio non scaricato (%s): salto' % e)
+        return
+    print('\n=== PROVA: dall\'avvio vecchio (%s) all\'avvio nuovo ===' % url.rsplit('/', 1)[-1], flush=True)
+    app = os.path.join(lavoro, 'app_vecchio')
+    shutil.copytree(os.path.join(dist, 'CotW Italiano'), os.path.join(app, 'programma', info['versione']))
+    with urllib.request.urlopen(url, timeout=120) as r, open(os.path.join(app, 'CotW Italiano.exe'), 'wb') as f:
+        shutil.copyfileobj(r, f)
+    env = {'COTW_AVVIO_PROVA': '1', 'COTW_AVVIO_SENZA_TK': '1', 'COTW_DATI': os.path.join(lavoro, 'd8'),
+           'COTW_URL_ONLINE': base + '/_prova/online.json', 'COTW_AVVIO_CHIAVE_PROVA': pubblica}
+    ok = lancia('avvio_vecchio', [os.path.join(app, 'CotW Italiano.exe'), '--aggiorna'],
+                dict(env, _ARG=['--prova-chiave', pubblica]), lavoro)
+    rap = os.path.join(lavoro, 'avvio_dopo.json')
+    subprocess.run([os.path.join(app, 'CotW Italiano.exe'), '--prova-avvio', rap, '--senza-internet'], timeout=120,
+                   env=dict(os.environ, COTW_AVVIO_SENZA_TK='1', COTW_DATI=os.path.join(lavoro, 'd9')))
+    try:
+        dopo = json.load(open(rap, encoding='utf-8'))
+    except Exception:
+        dopo = {}
+    nuovo = json.load(open(os.path.join(dist, 'programma.json'), encoding='utf-8')).get('avvio', {}).get('versione')
+    print('  avvio dopo l\'aggiornamento: versione %s %s (atteso %s), riserva .old.exe: %s' % (
+        dopo.get('avvio'), dopo.get('linguaggio', 'Python'), nuovo,
+        os.path.isfile(os.path.join(app, 'CotW Italiano.old.exe'))))
+    risultati['avvio vecchio (0.5.14) passa da solo all\'avvio nuovo'] = bool(
+        ok and dopo.get('ok') and str(dopo.get('avvio')) == str(nuovo)
+        and os.path.isfile(os.path.join(app, 'CotW Italiano.old.exe')))
 
 
 def prova_migrazione(dist, info, lavoro, risultati):
