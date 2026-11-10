@@ -24,5 +24,21 @@
  "servizi": {
   "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
   "firma": "34ce483696ee4998f4d5b52f0dbb33ddef24f6d8ab2c3800e1940d8018ca4be7b9c3f9df583eb3a9b129d34588361099a8fe8cbef67696a168d15f7381122507"
+ },
+ "anteprima": {
+  "versione": "0.5.16",
+  "sha256": "82c7f7111925107365c7bd29603126a38b055f88245632341cd21e9431f5d9f2",
+  "dimensione": 36879957,
+  "novita": [
+   "Contribuisci: numeri giusti anche subito dopo una pubblicazione (prima poteva mostrare le battute della lista vecchia)"
+  ],
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.16/CotW_Italiano_0.5.16.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.16/CotW_Italiano_Setup_0.5.16.exe",
+  "setup_sha256": "3d999283e5e1c79474121c5384bc165aa6d01d95984aa6e5b3053e3da6bef856",
+  "avvio": {
+   "versione": "2",
+   "sha256": "3ca42a949f86c9aead832b9b811d7c7df0c9926f6077628ef5666834762dbab7",
+   "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.16/CotW_Avvio_2.exe"
+  }
  }
 }
