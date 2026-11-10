@@ -1,31 +1,6 @@
 {
  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
  "programma": {
-  "versione": "0.5.15",
-  "sha256": "74e768faadb03cdcaf3c4dbe59c74015b3b0c03dbc60a8bd4ee037014d9732e6",
-  "dimensione": 36879644,
-  "novita": [
-   "Nuovo avvio in C#: piccolissimo, parte subito, meno falsi allarmi dell'antivirus",
-   "Gli scaricamenti riprendono da dove si erano fermati se cade la connessione",
-   "Aggiornamenti della mod piu' leggeri (solo i pacchetti piccoli che servono) e piu' veloci da installare",
-   "Il volume del quad non cancella piu' i file di altre mod",
-   "Correzioni e controlli automatici in piu' su tutto il programma"
-  ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.15/CotW_Italiano_0.5.15.zip",
-  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.15/CotW_Italiano_Setup_0.5.15.exe",
-  "setup_sha256": "732e0040b41c0f53d025d08320e86e9200026a67647669f1f392a7fddbde5d30",
-  "avvio": {
-   "versione": "2",
-   "sha256": "62d95555d4cea8a60f765756ade7756e14e6bc67bff7cacfe4e645326cc4c6ae",
-   "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.15/CotW_Avvio_2.exe"
-  },
-  "firma": "9c0c6012481e6f8472a78774e798bec14dc7bd45f4a5f3a2d3aa41302c656d9564988a50440914d01a1ec9729edaf5c30c78aa543755968c1b74942e291ee205"
- },
- "servizi": {
-  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
-  "firma": "34ce483696ee4998f4d5b52f0dbb33ddef24f6d8ab2c3800e1940d8018ca4be7b9c3f9df583eb3a9b129d34588361099a8fe8cbef67696a168d15f7381122507"
- },
- "anteprima": {
   "versione": "0.5.16",
   "sha256": "82c7f7111925107365c7bd29603126a38b055f88245632341cd21e9431f5d9f2",
   "dimensione": 36879957,
@@ -41,5 +16,9 @@
    "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.16/CotW_Avvio_2.exe"
   },
   "firma": "ae6455130ea33c069cff4847755e2b1897c594501a93814cb6e89b9255657acfd56d9537c19dc245476816972775aa6ef09979b6a26d7ca8a652bdc0fe23880e"
+ },
+ "servizi": {
+  "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
+  "firma": "34ce483696ee4998f4d5b52f0dbb33ddef24f6d8ab2c3800e1940d8018ca4be7b9c3f9df583eb3a9b129d34588361099a8fe8cbef67696a168d15f7381122507"
  }
 }
