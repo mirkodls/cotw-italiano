@@ -59,7 +59,7 @@ class ControlloOnline(QThread):
         try:
             self.doc = contribuisci.elenco(m)        # battute da doppiare (solo se l'autore le ha aperte)
             if self.doc:
-                self.stato = contribuisci.stato()
+                self.stato = contribuisci.stato(versione=self.doc.get('versione'))
         except Exception:
             pass
         self.fatto.emit(m)

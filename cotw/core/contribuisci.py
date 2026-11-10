@@ -178,12 +178,17 @@ def _post(url, corpo=None, dati=None, timeout=30):
         raise RuntimeError('Non riesco a collegarmi al servizio dei contributi: controlla internet.')
 
 
-def stato(timeout=20):
-    """{'versione','totale','fatte','prenotate','libere'} dal postino, oppure None."""
+def stato(timeout=20, versione=None):
+    """{'versione','totale','fatte','prenotate','libere'} dal postino, oppure None.
+    Se 'versione' e' data e il postino parla ancora di un'altra versione (subito dopo una pubblicazione tiene la lista
+    vecchia per qualche minuto), restituisce None: meglio nessun numero che i numeri di un'altra lista."""
     try:
         with urllib.request.urlopen(urllib.request.Request(_postino() + '/contributi/stato', headers=rete._UA),
                                     timeout=timeout) as r:
-            return json.loads(r.read().decode('utf-8'))
+            st = json.loads(r.read().decode('utf-8'))
+        if versione is not None and str(st.get('versione')) != str(versione):
+            return None
+        return st
     except Exception:
         return None
 
