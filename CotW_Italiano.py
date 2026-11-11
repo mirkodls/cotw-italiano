@@ -22,6 +22,27 @@ def disinstalla():
     return 0
 
 
+def _sorveglia_conferma(app, w):
+    """Versione nuova che non riesce a collegarsi (ma internet c'e'): avviso e chiudo con codice 3, cosi' l'avvio
+    torna da solo alla versione di prima. La prossima versione corretta arriva lo stesso (la scarica l'avvio)."""
+    from PySide6.QtCore import QTimer
+    from PySide6.QtWidgets import QMessageBox
+    from cotw.core import programma
+    t = QTimer(app)
+
+    def guarda():
+        if programma.ESITO_CONFERMA == 'ok':
+            t.stop()
+        elif programma.ESITO_CONFERMA == 'rotta':
+            t.stop()
+            QMessageBox.warning(w, 'CotW Italiano', 'Questa versione nuova non riesce a collegarsi a internet '
+                                '(internet c\'e\', ma non riceve i dati).\n\nTorno da solo alla versione di prima. '
+                                'Quando esce la versione corretta, arriva da sola come sempre.')
+            app.exit(3)
+    t.timeout.connect(guarda)
+    t.start(1000)
+
+
 def main():
     if '--prova' in sys.argv:                  # prova automatica (GitHub, prima di pubblicare): niente finestre
         from cotw import prova
@@ -55,9 +76,10 @@ def main():
         from cotw.ui import prima_di_giocare
         from cotw.core import programma
         from PySide6.QtCore import QTimer
-        QTimer.singleShot(3000, programma.segna_ok)   # "sono ok" per l'avvio (ritorno indietro automatico)
+        QTimer.singleShot(3000, programma.conferma_avvio)   # "sono ok" per l'avvio (solo se si collega)
         r = prima_di_giocare.esegui(sys.argv)
-        programma.segna_ok()
+        if programma.ESITO_CONFERMA == 'rotta':
+            sys.exit(3)
         sys.exit(r)
     app.setApplicationName('CotW Italiano')
     app.setStyle('Fusion')
@@ -71,7 +93,8 @@ def main():
     w.show()
     from cotw.core import programma
     from PySide6.QtCore import QTimer
-    QTimer.singleShot(3000, programma.segna_ok)       # "sono ok" per l'avvio (ritorno indietro automatico)
+    QTimer.singleShot(3000, programma.conferma_avvio)  # "sono ok" per l'avvio (solo se si collega e riceve dati)
+    _sorveglia_conferma(app, w)
     sys.exit(app.exec())
 
 

@@ -318,6 +318,37 @@ def aggiornamenti_del_programma_e_ultima_spiaggia():
 
 
 @prova
+def versione_nuova_conferma_solo_se_si_collega():
+    import time as _t
+    vecchi = (programma.con_avvio, programma._in_prova, rete.leggi_online, programma._internet_c_e, programma.segna_ok,
+              _t.sleep)
+    segnati = []
+    try:
+        programma.con_avvio = lambda: True
+        programma.segna_ok = lambda: segnati.append(1)
+        _t.sleep = lambda s: None
+        programma._in_prova = lambda: True
+        rete.leggi_online = lambda timeout=15: {'programma': {'versione': '1'}}
+        programma._controlla_e_conferma()
+        assert programma.ESITO_CONFERMA == 'ok' and segnati, 'si collega: deve dire sono ok'
+        segnati.clear()
+        rete.leggi_online = lambda timeout=15: {}
+        programma._internet_c_e = lambda: True
+        programma._controlla_e_conferma()
+        assert programma.ESITO_CONFERMA == 'rotta' and not segnati, 'internet c e ma non riceve dati: rotta'
+        programma._internet_c_e = lambda: False
+        programma._controlla_e_conferma()
+        assert programma.ESITO_CONFERMA == 'ok' and segnati, 'PC senza internet: non e colpa della versione'
+        segnati.clear()
+        programma._in_prova = lambda: False
+        programma.conferma_avvio()
+        assert programma.ESITO_CONFERMA == 'ok' and segnati, 'versione gia confermata: sono ok subito'
+    finally:
+        (programma.con_avvio, programma._in_prova, rete.leggi_online, programma._internet_c_e, programma.segna_ok,
+         _t.sleep) = vecchi
+
+
+@prova
 def percorsi_pericolosi_rifiutati():
     for cattivo in ('../x', 'a/../../b', 'C:/Windows/x', '/etc/x', 'a\\..\\b', ''):
         assert not firma.percorso_sicuro(cattivo), cattivo

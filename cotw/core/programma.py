@@ -93,6 +93,58 @@ def segna_ok():
         pass
 
 
+ESITO_CONFERMA = None            # None = in corso/non serve, 'ok', 'rotta' (versione nuova senza internet)
+
+
+def _in_prova():
+    """La versione e' appena arrivata e l'avvio aspetta il suo "sono ok" (prima di aprirla toglie avvio_ok.txt)."""
+    return con_avvio() and not os.path.isfile(
+        os.path.join(os.path.dirname(os.path.abspath(sys.executable)), 'avvio_ok.txt'))
+
+
+def _internet_c_e():
+    """Internet c'e' (senza certificati, senza Python ssl): basta aprire una connessione a GitHub o a Cloudflare."""
+    import socket
+    for host in ('raw.githubusercontent.com', 'github.com', '1.1.1.1'):
+        try:
+            socket.create_connection((host, 443), timeout=8).close()
+            return True
+        except OSError:
+            pass
+    return False
+
+
+def _controlla_e_conferma():
+    """Regola 3 rinforzata: una versione nuova dice "sono ok" solo se si collega e riceve online.json.
+    Se internet c'e' ma questa versione non riesce a leggere i dati = versione rotta: l'avvio torna da solo alla
+    precedente, e la prossima versione corretta arriva lo stesso (la scarica l'avvio, che e' un programma separato)."""
+    global ESITO_CONFERMA
+    for prova in range(3):
+        o = rete.leggi_online(timeout=20)
+        if isinstance(o, dict) and o.get('programma'):
+            segna_ok()
+            ESITO_CONFERMA = 'ok'
+            return
+        time.sleep(5)
+    if not _internet_c_e():              # PC senza internet: non e' colpa della versione, va bene cosi'
+        segna_ok()
+        ESITO_CONFERMA = 'ok'
+        return
+    ESITO_CONFERMA = 'rotta'
+
+
+def conferma_avvio():
+    """Da chiamare quando il programma e' partito. Versione gia' confermata: "sono ok" subito (come prima).
+    Versione nuova in prova: prima controlla che si colleghi e riceva i dati (in sottofondo, non blocca le finestre)."""
+    global ESITO_CONFERMA
+    if not _in_prova():
+        segna_ok()
+        ESITO_CONFERMA = 'ok'
+        return
+    import threading
+    threading.Thread(target=_controlla_e_conferma, daemon=True).start()
+
+
 def rinviato_da_avvio(versione):
     """True se all'apertura l'avvio ha gia' chiesto di questa versione e l'utente ha detto "piu' tardi"."""
     try:
