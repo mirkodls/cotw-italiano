@@ -66,15 +66,19 @@ def _certificati():
     """Solo i certificati inclusi nel programma (certifi), come su un Windows a cui mancano: deve funzionare lo stesso."""
     import ssl
     import certifi
+    import urllib.error
     import urllib.request
     from cotw.core import rete
     ctx = ssl.create_default_context(cafile=certifi.where())
     op = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ctx))
     out = []
     for url in ('https://github.com/', 'https://api.github.com/', rete.url_online(), rete.url_manifest()):
-        with op.open(urllib.request.Request(url, headers={'User-Agent': 'CotW-Italiano-prova'}), timeout=30) as r:
-            r.read(1024)
-            out.append('%s %s' % (r.status, url.split('/')[2]))
+        try:
+            with op.open(urllib.request.Request(url, headers={'User-Agent': 'CotW-Italiano-prova'}), timeout=30) as r:
+                r.read(1024)
+                out.append('%s %s' % (r.status, url.split('/')[2]))
+        except urllib.error.HTTPError as e:      # risposta arrivata = certificati ok (es. 403 limite richieste di GitHub)
+            out.append('%s %s' % (e.code, url.split('/')[2]))
     return out
 
 
