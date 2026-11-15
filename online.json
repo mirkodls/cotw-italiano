@@ -20,5 +20,22 @@
  "servizi": {
   "postino": "https://cotw-segnalazioni.dartagnan586e.workers.dev",
   "firma": "34ce483696ee4998f4d5b52f0dbb33ddef24f6d8ab2c3800e1940d8018ca4be7b9c3f9df583eb3a9b129d34588361099a8fe8cbef67696a168d15f7381122507"
+ },
+ "anteprima": {
+  "versione": "0.5.17",
+  "sha256": "dfa244c540643821de56310a8ebb16091624d608989baecebc7bbae32d2b72c0",
+  "dimensione": 36888263,
+  "novita": [
+   "Una versione nuova resta installata solo se si collega a internet e riceve i dati",
+   "altrimenti torna da sola a quella di prima"
+  ],
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.17/CotW_Italiano_0.5.17.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.17/CotW_Italiano_Setup_0.5.17.exe",
+  "setup_sha256": "dec27fd44e86713bd6bc982bd107f00ffab333afbae7600406a08ea43c1dbd3c",
+  "avvio": {
+   "versione": "2",
+   "sha256": "3f645eb6d9ebac052539714d7666315f09e52cb73091b6ed1a7fabfbe7091a00",
+   "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.17/CotW_Avvio_2.exe"
+  }
  }
 }
