@@ -21,5 +21,21 @@
  "servizi": {
   "postino": "https://cotw-segnalazioni.mdls.workers.dev",
   "firma": "6ff94d647ac6e3b91745648bac49f9af88239143e2f3508007534eafed638dc0a32ee98cf6f3245d10f3aa77707d39f0bbb3c0d07c95e07eb2ed5bf795f11e0a"
+ },
+ "anteprima": {
+  "versione": "0.5.18",
+  "sha256": "ec9ee7718964da697b4036b3834b63f9f8fba9859848a6028a560affeb664c26",
+  "dimensione": 36888458,
+  "novita": [
+   "Contribuisci: se il servizio dei contributi non risponde non mostra piu battute da doppiare che in realta sono gia fatte"
+  ],
+  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.18/CotW_Italiano_0.5.18.zip",
+  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.18/CotW_Italiano_Setup_0.5.18.exe",
+  "setup_sha256": "66380aab144958f51ce90323b81da668f96213dcbbe7f96a7dfba932bbc7090d",
+  "avvio": {
+   "versione": "2",
+   "sha256": "010920c01f00e0f71f1a90cf35ed9e3b73c03a4780a83c4eae76adfd25bbfe9d",
+   "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.18/CotW_Avvio_2.exe"
+  }
  }
 }
