@@ -1,28 +1,6 @@
 {
  "postino": "https://cotw-segnalazioni.mdls.workers.dev",
  "programma": {
-  "versione": "0.5.17",
-  "sha256": "dfa244c540643821de56310a8ebb16091624d608989baecebc7bbae32d2b72c0",
-  "dimensione": 36888263,
-  "novita": [
-   "Una versione nuova resta installata solo se si collega a internet e riceve i dati",
-   "altrimenti torna da sola a quella di prima"
-  ],
-  "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.17/CotW_Italiano_0.5.17.zip",
-  "setup_url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.17/CotW_Italiano_Setup_0.5.17.exe",
-  "setup_sha256": "dec27fd44e86713bd6bc982bd107f00ffab333afbae7600406a08ea43c1dbd3c",
-  "avvio": {
-   "versione": "2",
-   "sha256": "3f645eb6d9ebac052539714d7666315f09e52cb73091b6ed1a7fabfbe7091a00",
-   "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.17/CotW_Avvio_2.exe"
-  },
-  "firma": "9be4f716727f3ae5b796b22186ce495f027da30849484418b0b747a256d930b151528faa9256431aa07bb227061d33b79f22c8cbc690c1de93afbe8f9de9560d"
- },
- "servizi": {
-  "postino": "https://cotw-segnalazioni.mdls.workers.dev",
-  "firma": "6ff94d647ac6e3b91745648bac49f9af88239143e2f3508007534eafed638dc0a32ee98cf6f3245d10f3aa77707d39f0bbb3c0d07c95e07eb2ed5bf795f11e0a"
- },
- "anteprima": {
   "versione": "0.5.18",
   "sha256": "ec9ee7718964da697b4036b3834b63f9f8fba9859848a6028a560affeb664c26",
   "dimensione": 36888458,
@@ -38,5 +16,9 @@
    "url": "https://github.com/mirkodls/cotw-italiano/releases/download/programma-v0.5.18/CotW_Avvio_2.exe"
   },
   "firma": "1a116afe751c170a30d40683131f9c815e1b5302d4afa271267d7396c87b95aaa7cfff8e0e93c1b565c6b2f49722a611d9ec552d50e094a8964f27408a1ddf00"
+ },
+ "servizi": {
+  "postino": "https://cotw-segnalazioni.mdls.workers.dev",
+  "firma": "6ff94d647ac6e3b91745648bac49f9af88239143e2f3508007534eafed638dc0a32ee98cf6f3245d10f3aa77707d39f0bbb3c0d07c95e07eb2ed5bf795f11e0a"
  }
 }
