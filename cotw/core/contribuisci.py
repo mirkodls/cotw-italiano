@@ -202,8 +202,8 @@ def serve_aiuto(doc, st):
     """Ha senso chiedere di contribuire? Solo se ci sono battute libere e non le ha gia' fatte lui."""
     if not doc or mie(doc):
         return False
-    if st is None:
-        return True
+    if st is None:                      # postino che non risponde: non so se mancano battute, meglio non chiedere
+        return False
     return st.get('libere', 1) > 0
 
 

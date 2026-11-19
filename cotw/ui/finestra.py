@@ -1825,6 +1825,15 @@ class Finestra(QMainWindow):
             self.c_stato_l.setText('Al momento tutte le battute sono doppiate. Quando un aggiornamento del gioco '
                                    'aggiungera\' battute nuove, qui potrai aiutare a farle in italiano.')
             self.c_barra_tot.hide()
+        elif st is None and not lavora:
+            # postino che non risponde: la lista della mod dice quante battute c'erano, non quante ne mancano ancora
+            self.c_stato_l.setText('Non riesco a sapere se ci sono ancora battute da doppiare: il servizio dei '
+                                   'contributi non risponde. Riprova tra qualche minuto (riapri questa pagina).')
+            self.c_barra_tot.hide()
+            self.c_via.setEnabled(False)
+            self.c_sl_bat.setEnabled(False)
+            self.c_sl_cr.setEnabled(False)
+            self.c_sl_bat_l.setText('Battute da doppiare: -')
         else:
             tot = len(doc['battute'])
             fatte = (st or {}).get('fatte', 0)
